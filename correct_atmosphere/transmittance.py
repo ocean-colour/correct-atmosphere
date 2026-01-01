@@ -22,7 +22,7 @@ References
 import numpy as np
 from typing import Union, Optional, Tuple, Dict
 
-from oceanatmos.rayleigh import rayleigh_optical_thickness, geometric_air_mass_factor
+from correct_atmosphere.rayleigh import rayleigh_optical_thickness, geometric_air_mass_factor
 
 
 def direct_transmittance(
@@ -423,10 +423,10 @@ def gaseous_transmittance(
 
     Notes
     -----
-    See the :mod:`oceanatmos.gases` module for detailed gas absorption
+    See the :mod:`correct_atmosphere.gases` module for detailed gas absorption
     calculations.
     """
-    from oceanatmos.gases import gas_transmittance
+    from correct_atmosphere.gases import gas_transmittance
 
     return gas_transmittance(
         wavelength,

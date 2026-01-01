@@ -7,7 +7,7 @@ Installation
 Requirements
 ------------
 
-oceanatmos requires Python 3.9 or later and the following dependencies:
+correct_atmosphere requires Python 3.9 or later and the following dependencies:
 
 * NumPy >= 1.20
 * SciPy >= 1.7
@@ -17,11 +17,11 @@ oceanatmos requires Python 3.9 or later and the following dependencies:
 Installation from PyPI
 ----------------------
 
-The simplest way to install oceanatmos is using pip:
+The simplest way to install correct_atmosphere is using pip:
 
 .. code-block:: bash
 
-    pip install oceanatmos
+    pip install correct_atmosphere
 
 Installation from Source
 ------------------------
@@ -30,8 +30,8 @@ To install the latest development version:
 
 .. code-block:: bash
 
-    git clone https://github.com/username/oceanatmos.git
-    cd oceanatmos
+    git clone https://github.com/username/correct_atmosphere.git
+    cd correct_atmosphere
     pip install -e .
 
 Development Installation
@@ -60,8 +60,8 @@ Verify the installation by running:
 
 .. code-block:: python
 
-    import oceanatmos
-    print(oceanatmos.__version__)
+    import correct_atmosphere
+    print(correct_atmosphere.__version__)
 
 Or run the test suite:
 

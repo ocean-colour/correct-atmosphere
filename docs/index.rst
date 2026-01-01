@@ -1,10 +1,10 @@
-.. oceanatmos documentation master file
+.. correct_atmosphere documentation master file
 
 =========================================
-oceanatmos: Atmospheric Correction
+correct_atmosphere: Atmospheric Correction
 =========================================
 
-**oceanatmos** is a Python implementation of the NASA Ocean Biology Processing
+**correct_atmosphere** is a Python implementation of the NASA Ocean Biology Processing
 Group (OBPG) atmospheric correction algorithms for satellite ocean color
 remote sensing.
 
@@ -61,14 +61,14 @@ Installation
 
 .. code-block:: bash
 
-    pip install oceanatmos
+    pip install correct_atmosphere
 
 For development:
 
 .. code-block:: bash
 
-    git clone https://github.com/username/oceanatmos.git
-    cd oceanatmos
+    git clone https://github.com/username/correct_atmosphere.git
+    cd correct_atmosphere
     pip install -e ".[dev]"
 
 Basic Usage
@@ -76,7 +76,7 @@ Basic Usage
 
 .. code-block:: python
 
-    from oceanatmos import AtmosphericCorrection
+    from correct_atmosphere import AtmosphericCorrection
     
     # Initialize for a specific sensor
     ac = AtmosphericCorrection(sensor='modis_aqua')

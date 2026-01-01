@@ -25,7 +25,7 @@ References
 import numpy as np
 from typing import Union, Optional, Tuple, Dict
 
-from oceanatmos.constants import (
+from correct_atmosphere.constants import (
     BRDF_R0,
     BRDF_WAVELENGTHS,
     BRDF_CHL_VALUES,

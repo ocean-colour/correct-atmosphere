@@ -8,7 +8,7 @@ as described in Section 4 of NASA TM-2016-217551.
 import numpy as np
 import pytest
 
-from oceanatmos.transmittance import (
+from correct_atmosphere.transmittance import (
     direct_transmittance,
     diffuse_transmittance_rayleigh,
     diffuse_transmittance,
@@ -16,7 +16,7 @@ from oceanatmos.transmittance import (
     total_transmittance,
     gaseous_transmittance,
 )
-from oceanatmos.rayleigh import rayleigh_optical_thickness
+from correct_atmosphere.rayleigh import rayleigh_optical_thickness
 
 
 class TestDirectTransmittance:

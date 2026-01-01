@@ -8,7 +8,7 @@ throughout the atmospheric correction process.
 import numpy as np
 import pytest
 
-from oceanatmos.constants import (
+from correct_atmosphere.constants import (
     # Physical constants
     STANDARD_PRESSURE,
     STANDARD_TEMPERATURE,

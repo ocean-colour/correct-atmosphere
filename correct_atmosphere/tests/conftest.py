@@ -1,5 +1,5 @@
 """
-Pytest configuration and shared fixtures for oceanatmos tests.
+Pytest configuration and shared fixtures for correct_atmosphere tests.
 """
 
 import numpy as np

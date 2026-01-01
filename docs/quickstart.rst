@@ -4,7 +4,7 @@
 Quick Start
 ===========
 
-This guide demonstrates the basic usage of oceanatmos for atmospheric
+This guide demonstrates the basic usage of correct_atmosphere for atmospheric
 correction of ocean color satellite data.
 
 Basic Workflow
@@ -22,7 +22,7 @@ Simple Example
 
 .. code-block:: python
 
-    from oceanatmos import AtmosphericCorrection
+    from correct_atmosphere import AtmosphericCorrection
     
     # Initialize for MODIS-Aqua
     ac = AtmosphericCorrection(sensor='modis_aqua')
@@ -61,7 +61,7 @@ For more control, use individual correction modules:
 
 .. code-block:: python
 
-    from oceanatmos import rayleigh, gases, aerosols
+    from correct_atmosphere import rayleigh, gases, aerosols
     
     # Compute Rayleigh optical thickness
     tau_r = rayleigh.rayleigh_optical_thickness(443)
@@ -88,7 +88,7 @@ For real satellite data, you'll typically:
 .. code-block:: python
 
     import numpy as np
-    from oceanatmos import AtmosphericCorrection
+    from correct_atmosphere import AtmosphericCorrection
     
     # Initialize
     ac = AtmosphericCorrection(sensor='viirs')

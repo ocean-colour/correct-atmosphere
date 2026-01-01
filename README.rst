@@ -1,5 +1,5 @@
 ===========
-oceanatmos
+correct_atmosphere
 ===========
 
 Atmospheric Correction for Satellite Ocean Color Radiometry
@@ -36,12 +36,12 @@ Installation
 
 From PyPI (when available)::
 
-    pip install oceanatmos
+    pip install correct_atmosphere
 
 From source::
 
-    git clone https://github.com/yourusername/oceanatmos.git
-    cd oceanatmos
+    git clone https://github.com/yourusername/correct_atmosphere.git
+    cd correct_atmosphere
     pip install -e .
 
 For development::
@@ -54,17 +54,17 @@ Quick Start
 .. code-block:: python
 
     import numpy as np
-    from oceanatmos import AtmosphericCorrection
-    from oceanatmos.rayleigh import rayleigh_reflectance
-    from oceanatmos.transmittance import diffuse_transmittance
+    from correct_atmosphere import AtmosphericCorrection
+    from correct_atmosphere.rayleigh import rayleigh_reflectance
+    from correct_atmosphere.transmittance import diffuse_transmittance
 
     # Calculate Rayleigh optical thickness at 443 nm
-    from oceanatmos.rayleigh import rayleigh_optical_thickness
+    from correct_atmosphere.rayleigh import rayleigh_optical_thickness
     tau_r = rayleigh_optical_thickness(443.0)  # nm
     print(f"Rayleigh optical thickness at 443 nm: {tau_r:.4f}")
 
     # Calculate whitecap reflectance for 10 m/s wind
-    from oceanatmos.whitecaps import whitecap_reflectance
+    from correct_atmosphere.whitecaps import whitecap_reflectance
     rho_wc = whitecap_reflectance(wind_speed=10.0, wavelength=550.0)
     print(f"Whitecap reflectance: {rho_wc:.6f}")
 
@@ -86,7 +86,7 @@ Supported Sensors
 Documentation
 -------------
 
-Full documentation is available at https://oceanatmos.readthedocs.io
+Full documentation is available at https://correct_atmosphere.readthedocs.io
 
 Theory and algorithm descriptions are based on the NASA Technical Memorandum
 and the Ocean Optics Web Book (http://www.oceanopticsbook.info/).

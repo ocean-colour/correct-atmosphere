@@ -8,7 +8,7 @@ Section 9 of NASA TM-2016-217551.
 import numpy as np
 import pytest
 
-from oceanatmos import aerosols
+from correct_atmosphere import aerosols
 
 
 class TestAerosolModel:

@@ -5,12 +5,12 @@ API Reference
 =============
 
 This section provides detailed documentation for all public classes and
-functions in the oceanatmos package.
+functions in the correct_atmosphere package.
 
 Main Interface
 ==============
 
-.. automodule:: oceanatmos
+.. automodule:: correct_atmosphere
    :members:
    :undoc-members:
    :show-inheritance:
@@ -18,7 +18,7 @@ Main Interface
 AtmosphericCorrection
 ---------------------
 
-.. autoclass:: oceanatmos.correction.AtmosphericCorrection
+.. autoclass:: correct_atmosphere.correction.AtmosphericCorrection
    :members:
    :undoc-members:
    :show-inheritance:
@@ -26,7 +26,7 @@ AtmosphericCorrection
 Constants
 =========
 
-.. automodule:: oceanatmos.constants
+.. automodule:: correct_atmosphere.constants
    :members:
    :undoc-members:
    :show-inheritance:
@@ -34,7 +34,7 @@ Constants
 Rayleigh Scattering
 ===================
 
-.. automodule:: oceanatmos.rayleigh
+.. automodule:: correct_atmosphere.rayleigh
    :members:
    :undoc-members:
    :show-inheritance:
@@ -42,7 +42,7 @@ Rayleigh Scattering
 Gas Absorption
 ==============
 
-.. automodule:: oceanatmos.gases
+.. automodule:: correct_atmosphere.gases
    :members:
    :undoc-members:
    :show-inheritance:
@@ -50,7 +50,7 @@ Gas Absorption
 Sun Glint
 =========
 
-.. automodule:: oceanatmos.glint
+.. automodule:: correct_atmosphere.glint
    :members:
    :undoc-members:
    :show-inheritance:
@@ -58,7 +58,7 @@ Sun Glint
 Whitecaps
 =========
 
-.. automodule:: oceanatmos.whitecaps
+.. automodule:: correct_atmosphere.whitecaps
    :members:
    :undoc-members:
    :show-inheritance:
@@ -66,7 +66,7 @@ Whitecaps
 Aerosols
 ========
 
-.. automodule:: oceanatmos.aerosols
+.. automodule:: correct_atmosphere.aerosols
    :members:
    :undoc-members:
    :show-inheritance:
@@ -74,7 +74,7 @@ Aerosols
 Transmittance
 =============
 
-.. automodule:: oceanatmos.transmittance
+.. automodule:: correct_atmosphere.transmittance
    :members:
    :undoc-members:
    :show-inheritance:
@@ -82,7 +82,7 @@ Transmittance
 Normalization
 =============
 
-.. automodule:: oceanatmos.normalization
+.. automodule:: correct_atmosphere.normalization
    :members:
    :undoc-members:
    :show-inheritance:
@@ -90,7 +90,7 @@ Normalization
 Polarization
 ============
 
-.. automodule:: oceanatmos.polarization
+.. automodule:: correct_atmosphere.polarization
    :members:
    :undoc-members:
    :show-inheritance:
@@ -98,7 +98,7 @@ Polarization
 Out-of-Band Correction
 ======================
 
-.. automodule:: oceanatmos.outofband
+.. automodule:: correct_atmosphere.outofband
    :members:
    :undoc-members:
    :show-inheritance:

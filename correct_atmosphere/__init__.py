@@ -1,5 +1,5 @@
 """
-oceanatmos: Atmospheric Correction for Satellite Ocean Color Radiometry
+correct_atmosphere: Atmospheric Correction for Satellite Ocean Color Radiometry
 ========================================================================
 
 A Python implementation of the NASA Ocean Biology Processing Group (OBPG)
@@ -39,8 +39,8 @@ outofband
 
 Example
 -------
->>> from oceanatmos import AtmosphericCorrection
->>> from oceanatmos.rayleigh import rayleigh_optical_thickness
+>>> from correct_atmosphere import AtmosphericCorrection
+>>> from correct_atmosphere.rayleigh import rayleigh_optical_thickness
 >>> tau_r = rayleigh_optical_thickness(443.0)  # nm
 >>> print(f"Rayleigh optical thickness at 443 nm: {tau_r:.4f}")
 """
@@ -48,8 +48,8 @@ Example
 __version__ = "0.1.0"
 __author__ = "Your Name"
 
-from oceanatmos.correction import AtmosphericCorrection
-from oceanatmos.constants import (
+from correct_atmosphere.correction import AtmosphericCorrection
+from correct_atmosphere.constants import (
     STANDARD_PRESSURE,
     STANDARD_TEMPERATURE,
     MEAN_EARTH_SUN_DISTANCE,

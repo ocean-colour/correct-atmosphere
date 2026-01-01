@@ -25,7 +25,7 @@ References
 import numpy as np
 from typing import Union
 
-from oceanatmos.constants import (
+from correct_atmosphere.constants import (
     WHITECAP_REFLECTANCE_EFFECTIVE,
     WHITECAP_SPECTRAL_FACTOR,
     WHITECAP_MIN_WIND_SPEED,

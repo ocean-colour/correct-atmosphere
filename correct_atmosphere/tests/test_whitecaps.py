@@ -8,7 +8,7 @@ Section 8 of NASA TM-2016-217551.
 import numpy as np
 import pytest
 
-from oceanatmos import whitecaps
+from correct_atmosphere import whitecaps
 
 
 class TestWhitecapFraction:

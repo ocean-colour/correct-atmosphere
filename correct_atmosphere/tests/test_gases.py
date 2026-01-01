@@ -8,7 +8,7 @@ Section 6.2 of NASA TM-2016-217551.
 import numpy as np
 import pytest
 
-from oceanatmos import gases
+from correct_atmosphere import gases
 
 
 class TestOzoneOpticalThickness:

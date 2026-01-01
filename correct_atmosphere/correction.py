@@ -256,7 +256,7 @@ class AtmosphericCorrection:
 
     Examples
     --------
-    >>> from oceanatmos import AtmosphericCorrection
+    >>> from correct_atmosphere import AtmosphericCorrection
     >>> ac = AtmosphericCorrection('modis_aqua')
     >>> result = ac.process(Lt, geometry, ancillary)
     >>> print(result.rrs)

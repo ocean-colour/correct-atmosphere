@@ -21,8 +21,8 @@ References
 import numpy as np
 from typing import Union, Optional, Dict
 
-from oceanatmos.rayleigh import geometric_air_mass_factor
-from oceanatmos.constants import (
+from correct_atmosphere.rayleigh import geometric_air_mass_factor
+from correct_atmosphere.constants import (
     O3_CROSS_SECTION_SEAWIFS,
     NO2_CROSS_SECTION_SEAWIFS,
 )

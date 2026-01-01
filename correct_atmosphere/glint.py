@@ -21,8 +21,8 @@ References
 import numpy as np
 from typing import Union, Tuple, Optional
 
-from oceanatmos.constants import GLINT_THRESHOLD
-from oceanatmos.rayleigh import rayleigh_optical_thickness
+from correct_atmosphere.constants import GLINT_THRESHOLD
+from correct_atmosphere.rayleigh import rayleigh_optical_thickness
 
 
 def cox_munk_slope_variance(wind_speed: float) -> float:

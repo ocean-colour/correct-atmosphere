@@ -10,9 +10,9 @@ sys.path.insert(0, os.path.abspath('../src'))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'oceanatmos'
-copyright = '2024, oceanatmos contributors'
-author = 'oceanatmos contributors'
+project = 'correct_atmosphere'
+copyright = '2024, correct_atmosphere contributors'
+author = 'correct_atmosphere contributors'
 release = '0.1.0'
 
 # -- General configuration ---------------------------------------------------

@@ -8,7 +8,7 @@ Section 3 of NASA TM-2016-217551.
 import numpy as np
 import pytest
 
-from oceanatmos import normalization
+from correct_atmosphere import normalization
 
 
 class TestEarthSunDistanceCorrection:

@@ -8,7 +8,7 @@ Section 7 of NASA TM-2016-217551.
 import numpy as np
 import pytest
 
-from oceanatmos import glint
+from correct_atmosphere import glint
 
 
 class TestCoxMunkSlopeVariance:

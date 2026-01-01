@@ -8,7 +8,7 @@ in Section 11 of NASA TM-2016-217551.
 import numpy as np
 import pytest
 
-from oceanatmos.polarization import (
+from correct_atmosphere.polarization import (
     rotation_matrix,
     compute_rotation_angle,
     compute_polarization_correction,

@@ -8,7 +8,7 @@ and Wang (2005) as documented in Section 6.1 of NASA TM-2016-217551.
 import numpy as np
 import pytest
 
-from oceanatmos import rayleigh
+from correct_atmosphere import rayleigh
 
 
 class TestRayleighOpticalThickness:

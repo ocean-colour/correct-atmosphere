@@ -4,7 +4,7 @@
 Examples
 ========
 
-This section provides detailed examples of using oceanatmos for various
+This section provides detailed examples of using correct_atmosphere for various
 atmospheric correction tasks.
 
 Example 1: Basic Atmospheric Correction
@@ -14,7 +14,7 @@ Complete example processing a single pixel:
 
 .. code-block:: python
 
-    from oceanatmos import AtmosphericCorrection
+    from correct_atmosphere import AtmosphericCorrection
     
     # Initialize for SeaWiFS
     ac = AtmosphericCorrection(sensor='seawifs')
@@ -58,8 +58,8 @@ Using modules for step-by-step correction:
 
 .. code-block:: python
 
-    from oceanatmos import rayleigh, gases, glint, whitecaps, aerosols
-    from oceanatmos import normalization
+    from correct_atmosphere import rayleigh, gases, glint, whitecaps, aerosols
+    from correct_atmosphere import normalization
     import numpy as np
     
     # Input parameters
@@ -102,7 +102,7 @@ Processing multiple pixels efficiently:
 .. code-block:: python
 
     import numpy as np
-    from oceanatmos import AtmosphericCorrection
+    from correct_atmosphere import AtmosphericCorrection
     
     # Initialize
     ac = AtmosphericCorrection(sensor='modis_aqua')
@@ -149,7 +149,7 @@ Processing the same scene with different sensor configurations:
 
 .. code-block:: python
 
-    from oceanatmos import AtmosphericCorrection
+    from correct_atmosphere import AtmosphericCorrection
     
     # Common TOA reflectances (approximate band matching)
     common_toa = {

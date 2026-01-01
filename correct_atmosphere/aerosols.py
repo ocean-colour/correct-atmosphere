@@ -26,7 +26,7 @@ import numpy as np
 from typing import Union, Optional, Tuple, Dict, List
 from dataclasses import dataclass
 
-from oceanatmos.constants import (
+from correct_atmosphere.constants import (
     AEROSOL_RH_VALUES,
     AEROSOL_NUM_MODELS,
     NIR_BANDS,

@@ -8,8 +8,8 @@ the complete atmospheric correction process.
 import numpy as np
 import pytest
 
-from oceanatmos import AtmosphericCorrection
-from oceanatmos.correction import AtmosphericCorrection as AC
+from correct_atmosphere import AtmosphericCorrection
+from correct_atmosphere.correction import AtmosphericCorrection as AC
 
 
 class TestAtmosphericCorrectionInit:

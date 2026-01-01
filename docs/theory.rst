@@ -5,7 +5,7 @@ Theory and Background
 ========================
 
 This section provides an overview of the atmospheric correction algorithms
-implemented in oceanatmos, based on NASA TM-2016-217551.
+implemented in correct_atmosphere, based on NASA TM-2016-217551.
 
 The Atmospheric Correction Problem
 ==================================

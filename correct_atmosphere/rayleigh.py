@@ -27,7 +27,7 @@ References
 import numpy as np
 from typing import Union, Optional, Tuple
 
-from oceanatmos.constants import (
+from correct_atmosphere.constants import (
     STANDARD_PRESSURE,
     STANDARD_TEMPERATURE,
     STANDARD_CO2_PPM,
