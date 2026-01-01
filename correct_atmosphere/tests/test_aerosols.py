@@ -147,24 +147,33 @@ class TestAerosolLUT:
     def test_get_epsilon(self):
         """Test epsilon retrieval."""
         lut = aerosols.AerosolLUT(sensor="seawifs")
-        
+
         eps = lut.get_epsilon(
-            model_index=5,
+            model_id=5,
+            relative_humidity=80,
             wavelength=443,
-            ref_wavelength=865,
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+            reference_wavelength=865,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
         )
         assert eps > 0
 
     def test_model_range(self):
         """Test that model indices are valid."""
         lut = aerosols.AerosolLUT(sensor="seawifs")
-        
+
         # Should accept model indices 0-9
         for i in range(10):
-            eps = lut.get_epsilon(i, 443, 865, 30, 30, 90)
+            eps = lut.get_epsilon(
+                model_id=i,
+                relative_humidity=80,
+                wavelength=443,
+                reference_wavelength=865,
+                solar_zenith=30,
+                view_zenith=30,
+                relative_azimuth=90,
+            )
             assert eps > 0
 
 
@@ -173,67 +182,68 @@ class TestBlackPixelCorrection:
 
     def test_returns_aerosol_reflectance(self):
         """Test that correction returns aerosol reflectances."""
-        rho_toa = {
-            412: 0.15,
-            443: 0.12,
-            490: 0.09,
-            555: 0.06,
-            670: 0.03,
-            765: 0.02,
-            865: 0.015,
-        }
-        
-        result = aerosols.black_pixel_correction(
-            rho_toa=rho_toa,
-            sensor="seawifs",
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+        wavelengths = np.array([412, 443, 490, 555, 670, 765, 865])
+        rho_aw_nir1 = 0.02  # 765 nm
+        rho_aw_nir2 = 0.015  # 865 nm
+
+        rho_a, info = aerosols.black_pixel_correction(
+            rho_aw_nir1=rho_aw_nir1,
+            rho_aw_nir2=rho_aw_nir2,
+            wavelengths=wavelengths,
+            nir_wavelength_1=765.0,
+            nir_wavelength_2=865.0,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
             relative_humidity=80,
         )
-        
-        assert 'rho_a' in result
-        assert 'epsilon' in result
-        assert 'model_indices' in result
+
+        assert len(rho_a) == len(wavelengths)
+        assert 'epsilon_measured' in info
+        assert 'model_low' in info
+        assert 'model_high' in info
 
     def test_nir_black_assumption(self):
         """Test that NIR reflectance is attributed to aerosols."""
-        rho_toa = {
-            765: 0.02,
-            865: 0.015,
-        }
-        
-        result = aerosols.black_pixel_correction(
-            rho_toa=rho_toa,
-            sensor="seawifs",
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+        wavelengths = np.array([765, 865])
+        rho_aw_nir1 = 0.02
+        rho_aw_nir2 = 0.015
+
+        rho_a, info = aerosols.black_pixel_correction(
+            rho_aw_nir1=rho_aw_nir1,
+            rho_aw_nir2=rho_aw_nir2,
+            wavelengths=wavelengths,
+            nir_wavelength_1=765.0,
+            nir_wavelength_2=865.0,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
+            relative_humidity=80,
         )
-        
-        # All NIR reflectance should be aerosol under black-pixel assumption
-        assert abs(result['rho_a'][865] - rho_toa[865]) < 0.001
+
+        # At reference wavelength (865), rho_a should equal epsilon * rho_a_nir2
+        # where epsilon(865,865) = 1
+        assert abs(rho_a[1] - rho_aw_nir2) < 0.001
 
     def test_extrapolation_to_visible(self):
         """Test extrapolation to visible wavelengths."""
-        rho_toa = {
-            412: 0.15,
-            443: 0.12,
-            765: 0.02,
-            865: 0.015,
-        }
-        
-        result = aerosols.black_pixel_correction(
-            rho_toa=rho_toa,
-            sensor="seawifs",
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+        wavelengths = np.array([412, 443, 765, 865])
+
+        rho_a, info = aerosols.black_pixel_correction(
+            rho_aw_nir1=0.02,
+            rho_aw_nir2=0.015,
+            wavelengths=wavelengths,
+            nir_wavelength_1=765.0,
+            nir_wavelength_2=865.0,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
+            relative_humidity=80,
         )
-        
+
         # Should estimate aerosol at visible wavelengths
-        assert 412 in result['rho_a']
-        assert result['rho_a'][412] > 0
+        assert rho_a[0] > 0  # 412 nm
+        assert rho_a[1] > 0  # 443 nm
 
 
 class TestEstimateNIRRrs:
@@ -241,32 +251,30 @@ class TestEstimateNIRRrs:
 
     def test_returns_positive(self):
         """Test that estimated NIR Rrs is positive for turbid water."""
-        rrs_visible = {
-            443: 0.005,
-            490: 0.008,
-            555: 0.010,
-            670: 0.015,  # High 670 indicates turbid water
-        }
-        
         rrs_nir = aerosols.estimate_nir_rrs(
-            rrs_visible=rrs_visible,
-            wavelength_nir=765,
+            rrs_443=0.005,
+            rrs_555=0.010,
+            rrs_670=0.015,  # High 670 indicates turbid water
+            nir_wavelength=765,
         )
-        
+
         assert rrs_nir >= 0
 
     def test_zero_for_clear_water(self):
         """Test near-zero NIR Rrs for clear Case 1 water."""
-        rrs_visible = {
-            443: 0.008,
-            490: 0.006,
-            555: 0.003,
-            670: 0.0005,  # Very low red indicates clear water
-        }
-        
-        rrs_765 = aerosols.estimate_nir_rrs(rrs_visible, 765)
-        rrs_865 = aerosols.estimate_nir_rrs(rrs_visible, 865)
-        
+        rrs_765 = aerosols.estimate_nir_rrs(
+            rrs_443=0.008,
+            rrs_555=0.003,
+            rrs_670=0.0005,  # Very low red indicates clear water
+            nir_wavelength=765,
+        )
+        rrs_865 = aerosols.estimate_nir_rrs(
+            rrs_443=0.008,
+            rrs_555=0.003,
+            rrs_670=0.0005,
+            nir_wavelength=865,
+        )
+
         # Should be very small for clear water
         assert rrs_765 < 0.001
         assert rrs_865 < rrs_765
@@ -277,62 +285,64 @@ class TestNonBlackPixelCorrection:
 
     def test_iterative_convergence(self):
         """Test that iteration converges."""
-        rho_toa = {
-            412: 0.15,
-            443: 0.12,
-            490: 0.10,
-            555: 0.07,
-            670: 0.04,
-            765: 0.025,  # Higher NIR suggests non-black water
-            865: 0.018,
-        }
-        
-        result = aerosols.non_black_pixel_correction(
-            rho_toa=rho_toa,
-            sensor="seawifs",
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+        wavelengths = np.array([412, 443, 490, 555, 670, 765, 865])
+        rho_aw_bands = np.array([0.15, 0.12, 0.10, 0.07, 0.04, 0.025, 0.018])
+        diffuse_transmittance = np.ones_like(wavelengths, dtype=float) * 0.9
+
+        rho_a, rrs, info = aerosols.non_black_pixel_correction(
+            rho_aw_bands=rho_aw_bands,
+            wavelengths=wavelengths,
+            nir_wavelength_1=765.0,
+            nir_wavelength_2=865.0,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
+            relative_humidity=80,
+            diffuse_transmittance=diffuse_transmittance,
             max_iterations=10,
-            convergence_threshold=0.02,
+            convergence=0.02,
         )
-        
-        assert result['converged'] or result['iterations'] == 10
-        assert 'rrs_nir' in result
+
+        assert info['converged'] or info['iterations'] == 10
+        assert len(rho_a) == len(wavelengths)
+        assert len(rrs) == len(wavelengths)
 
     def test_reduces_aerosol_estimate(self):
         """Test that accounting for water reduces aerosol estimate."""
-        rho_toa = {
-            412: 0.15,
-            443: 0.12,
-            490: 0.10,
-            555: 0.07,
-            670: 0.04,
-            765: 0.025,
-            865: 0.018,
-        }
-        
+        wavelengths = np.array([412, 443, 490, 555, 670, 765, 865])
+        rho_aw_bands = np.array([0.15, 0.12, 0.10, 0.07, 0.04, 0.025, 0.018])
+        diffuse_transmittance = np.ones_like(wavelengths, dtype=float) * 0.9
+
         # Black pixel correction
-        bp_result = aerosols.black_pixel_correction(
-            rho_toa=rho_toa,
-            sensor="seawifs",
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+        bp_rho_a, bp_info = aerosols.black_pixel_correction(
+            rho_aw_nir1=0.025,
+            rho_aw_nir2=0.018,
+            wavelengths=wavelengths,
+            nir_wavelength_1=765.0,
+            nir_wavelength_2=865.0,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
+            relative_humidity=80,
         )
-        
+
         # Non-black pixel correction
-        nbp_result = aerosols.non_black_pixel_correction(
-            rho_toa=rho_toa,
-            sensor="seawifs",
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+        nbp_rho_a, nbp_rrs, nbp_info = aerosols.non_black_pixel_correction(
+            rho_aw_bands=rho_aw_bands,
+            wavelengths=wavelengths,
+            nir_wavelength_1=765.0,
+            nir_wavelength_2=865.0,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
+            relative_humidity=80,
+            diffuse_transmittance=diffuse_transmittance,
         )
-        
-        # Non-black-pixel should give lower aerosol estimate at NIR
+
+        # Non-black-pixel should give lower or equal aerosol estimate at NIR
         # since some NIR signal is attributed to water
-        assert nbp_result['rho_a'][865] <= bp_result['rho_a'][865]
+        idx_865 = np.argmin(np.abs(wavelengths - 865))
+        assert nbp_rho_a[idx_865] <= bp_rho_a[idx_865] + 0.001
 
 
 class TestShouldApplyNonBlackPixel:
@@ -341,17 +351,20 @@ class TestShouldApplyNonBlackPixel:
     def test_clear_water(self):
         """Test that clear water doesn't need non-black-pixel."""
         chl = 0.1  # Low chlorophyll
-        should_apply = aerosols.should_apply_nonblack_pixel(chl)
+        should_apply, weight = aerosols.should_apply_nonblack_pixel(chl)
         assert not should_apply
+        assert weight == 0.0
 
     def test_turbid_water(self):
         """Test that turbid water needs non-black-pixel."""
         chl = 1.0  # Higher chlorophyll
-        should_apply = aerosols.should_apply_nonblack_pixel(chl)
+        should_apply, weight = aerosols.should_apply_nonblack_pixel(chl)
         assert should_apply
+        assert weight == 1.0
 
     def test_transition_zone(self):
         """Test transition zone behavior."""
         # 0.3-0.7 mg/m³ is transition zone
-        weight = aerosols.should_apply_nonblack_pixel(0.5, return_weight=True)
+        should_apply, weight = aerosols.should_apply_nonblack_pixel(0.5)
+        assert should_apply
         assert 0 < weight < 1

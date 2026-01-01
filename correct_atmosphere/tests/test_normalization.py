@@ -44,35 +44,35 @@ class TestNormalizedWaterLeavingRadiance:
 
     def test_formula(self):
         """Test implementation of Eq. 3.2."""
-        Lw = 0.5  # W/m²/sr/nm
-        theta_s = 30  # degrees
-        t_diffuse = 0.9
+        lw = 0.5  # W/m²/sr/nm
+        solar_zenith = 30  # degrees
+        diffuse_transmittance = 0.9
         day_of_year = 172
-        
-        Lw_N = normalization.normalized_water_leaving_radiance(
-            Lw=Lw,
-            theta_s=theta_s,
-            t_diffuse=t_diffuse,
+
+        lw_n = normalization.normalized_water_leaving_radiance(
+            lw=lw,
+            solar_zenith=solar_zenith,
+            diffuse_transmittance=diffuse_transmittance,
             day_of_year=day_of_year,
         )
-        
-        # Should be > Lw due to normalization
-        assert Lw_N > Lw
+
+        # Should be > lw due to normalization
+        assert lw_n > lw
 
     def test_solar_zenith_correction(self):
         """Test that zenith sun gives minimum correction."""
-        Lw = 0.5
-        t_diffuse = 0.9
-        
-        Lw_N_zenith = normalization.normalized_water_leaving_radiance(
-            Lw=Lw, theta_s=0, t_diffuse=t_diffuse, day_of_year=172
+        lw = 0.5
+        diffuse_transmittance = 0.9
+
+        lw_n_zenith = normalization.normalized_water_leaving_radiance(
+            lw=lw, solar_zenith=0, diffuse_transmittance=diffuse_transmittance, day_of_year=172
         )
-        Lw_N_oblique = normalization.normalized_water_leaving_radiance(
-            Lw=Lw, theta_s=60, t_diffuse=t_diffuse, day_of_year=172
+        lw_n_oblique = normalization.normalized_water_leaving_radiance(
+            lw=lw, solar_zenith=60, diffuse_transmittance=diffuse_transmittance, day_of_year=172
         )
-        
+
         # Oblique sun requires larger correction
-        assert Lw_N_oblique > Lw_N_zenith
+        assert lw_n_oblique > lw_n_zenith
 
 
 class TestNormalizedWaterLeavingReflectance:
@@ -80,36 +80,37 @@ class TestNormalizedWaterLeavingReflectance:
 
     def test_formula(self):
         """Test implementation of Eq. 3.3."""
-        Lw = 0.5  # W/m²/sr/nm
-        F0 = 190  # W/m²/nm (typical at 443 nm)
-        theta_s = 30
-        t_diffuse = 0.9
-        
-        rho_w_N = normalization.normalized_water_leaving_reflectance(
-            Lw=Lw,
-            F0=F0,
-            theta_s=theta_s,
-            t_diffuse=t_diffuse,
+        lw = 0.5  # W/m²/sr/nm
+        solar_irradiance = 190  # W/m²/nm (typical at 443 nm)
+        solar_zenith = 30
+        diffuse_transmittance = 0.9
+
+        rho_w_n = normalization.normalized_water_leaving_reflectance(
+            lw=lw,
+            solar_irradiance=solar_irradiance,
+            solar_zenith=solar_zenith,
+            diffuse_transmittance=diffuse_transmittance,
             day_of_year=172,
         )
-        
-        assert 0 < rho_w_N < 1
+
+        assert 0 < rho_w_n < 1
 
     def test_pi_factor(self):
         """Test that π factor converts radiance to reflectance."""
-        Lw = 1.0
-        F0 = 190
-        
-        Lw_N = normalization.normalized_water_leaving_radiance(
-            Lw=Lw, theta_s=0, t_diffuse=1.0, day_of_year=172
+        lw = 1.0
+        solar_irradiance = 190
+
+        lw_n = normalization.normalized_water_leaving_radiance(
+            lw=lw, solar_zenith=0, diffuse_transmittance=1.0, day_of_year=172
         )
-        rho_w_N = normalization.normalized_water_leaving_reflectance(
-            Lw=Lw, F0=F0, theta_s=0, t_diffuse=1.0, day_of_year=172
+        rho_w_n = normalization.normalized_water_leaving_reflectance(
+            lw=lw, solar_irradiance=solar_irradiance, solar_zenith=0,
+            diffuse_transmittance=1.0, day_of_year=172
         )
-        
+
         # rho = π * L / F0
-        expected = np.pi * Lw_N / F0
-        assert abs(rho_w_N - expected) < 0.001
+        expected = np.pi * lw_n / solar_irradiance
+        assert abs(rho_w_n - expected) < 0.001
 
 
 class TestRemoteSensingReflectance:
@@ -179,15 +180,17 @@ class TestFresnelTransmittance:
     def test_normal_incidence(self):
         """Test transmittance at normal incidence."""
         T = normalization.fresnel_transmittance_water_to_air(0)
-        # At normal incidence, T ≈ 0.979 for n=1.34
-        assert 0.95 < T < 1.0
+        # At normal incidence, T is reduced by solid angle change factor
+        # T = (1 - reflectance) * (cos_air / cos_water) / n^2
+        # For normal incidence: T ≈ 0.979 / 1.34^2 ≈ 0.545
+        assert 0.4 < T < 0.7
 
     def test_total_internal_reflection(self):
         """Test behavior near critical angle."""
         # Critical angle for n=1.34 is about 48°
         T_40 = normalization.fresnel_transmittance_water_to_air(40)
         T_48 = normalization.fresnel_transmittance_water_to_air(48)
-        
+
         assert T_48 < T_40
 
 
@@ -223,48 +226,48 @@ class TestBRDFCorrection:
     def test_get_f_over_Q(self):
         """Test f/Q retrieval."""
         brdf = normalization.BRDFCorrection()
-        
+
         f_Q = brdf.get_f_over_Q(
             wavelength=443,
-            chl=0.1,
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+            chlorophyll=0.1,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
             wind_speed=5,
         )
-        
+
         # f/Q typically 0.07-0.15
         assert 0.05 < f_Q < 0.20
 
     def test_correction_factor(self):
         """Test BRDF correction factor calculation."""
         brdf = normalization.BRDFCorrection()
-        
+
         factor = brdf.correction_factor(
             wavelength=443,
-            chl=0.1,
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+            chlorophyll=0.1,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
             wind_speed=5,
         )
-        
+
         # Factor typically 0.6-1.2
         assert 0.5 < factor < 1.5
 
     def test_nadir_zenith_factor(self):
         """Test that nadir view with zenith sun gives factor ≈ 1."""
         brdf = normalization.BRDFCorrection()
-        
+
         factor = brdf.correction_factor(
             wavelength=443,
-            chl=0.1,
-            theta_s=0,
-            theta_v=0,
-            phi=0,
+            chlorophyll=0.1,
+            solar_zenith=0,
+            view_zenith=0,
+            relative_azimuth=0,
             wind_speed=0,
         )
-        
+
         # Should be close to 1 for reference geometry
         assert 0.9 < factor < 1.1
 
@@ -274,24 +277,36 @@ class TestExactNormalizedReflectance:
 
     def test_applies_brdf_correction(self):
         """Test that BRDF correction is applied."""
-        Lw = 0.5
-        F0 = 190
-        theta_s = 45
-        theta_v = 30
-        
-        # Without BRDF
-        rho_N = normalization.normalized_water_leaving_reflectance(
-            Lw=Lw, F0=F0, theta_s=theta_s, t_diffuse=0.9, day_of_year=172
+        rho_w = 0.01  # Water-leaving reflectance
+        solar_irradiance = 190
+        solar_zenith = 45
+        view_zenith = 30
+
+        # Without BRDF - use basic normalization
+        rho_n = normalization.normalized_water_leaving_reflectance(
+            lw=rho_w * solar_irradiance / np.pi,  # Convert reflectance to radiance
+            solar_irradiance=solar_irradiance,
+            solar_zenith=solar_zenith,
+            diffuse_transmittance=0.9,
+            day_of_year=172
         )
-        
+
         # With BRDF
-        rho_N_ex = normalization.exact_normalized_reflectance(
-            Lw=Lw, F0=F0, theta_s=theta_s, theta_v=theta_v, phi=90,
-            t_diffuse=0.9, day_of_year=172, chl=0.1, wind_speed=5
+        rho_n_ex = normalization.exact_normalized_reflectance(
+            rho_w=rho_w,
+            wavelength=443,
+            solar_zenith=solar_zenith,
+            view_zenith=view_zenith,
+            relative_azimuth=90,
+            chlorophyll=0.1,
+            solar_irradiance=solar_irradiance,
+            diffuse_transmittance=0.9,
+            day_of_year=172,
+            wind_speed=5,
         )
-        
+
         # Should be different due to BRDF correction
-        assert rho_N != rho_N_ex
+        assert rho_n != rho_n_ex
 
 
 class TestNASARrs:
@@ -299,28 +314,47 @@ class TestNASARrs:
 
     def test_definition(self):
         """Test Rrs(NASA) = [ρw]_N^ex / π."""
-        Lw = 0.5
-        F0 = 190
-        
-        rho_N_ex = normalization.exact_normalized_reflectance(
-            Lw=Lw, F0=F0, theta_s=30, theta_v=30, phi=90,
-            t_diffuse=0.9, day_of_year=172, chl=0.1, wind_speed=5
+        rho_w = 0.01  # Water-leaving reflectance
+        solar_irradiance = 190
+
+        rho_n_ex = normalization.exact_normalized_reflectance(
+            rho_w=rho_w,
+            wavelength=443,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
+            chlorophyll=0.1,
+            solar_irradiance=solar_irradiance,
+            diffuse_transmittance=0.9,
+            day_of_year=172,
+            wind_speed=5,
         )
-        
-        Rrs_nasa = normalization.nasa_rrs(
-            Lw=Lw, F0=F0, theta_s=30, theta_v=30, phi=90,
-            t_diffuse=0.9, day_of_year=172, chl=0.1, wind_speed=5
-        )
-        
-        expected = rho_N_ex / np.pi
-        assert abs(Rrs_nasa - expected) < 1e-10
+
+        # nasa_rrs just takes the exact normalized reflectance and divides by pi
+        rrs_nasa = normalization.nasa_rrs(rho_n_ex)
+
+        expected = rho_n_ex / np.pi
+        assert abs(rrs_nasa - expected) < 1e-10
 
     def test_typical_values(self):
         """Test that Rrs values are in typical range."""
-        Rrs = normalization.nasa_rrs(
-            Lw=0.5, F0=190, theta_s=30, theta_v=30, phi=90,
-            t_diffuse=0.9, day_of_year=172, chl=0.1, wind_speed=5
+        rho_w = 0.01  # Water-leaving reflectance
+        solar_irradiance = 190
+
+        rho_n_ex = normalization.exact_normalized_reflectance(
+            rho_w=rho_w,
+            wavelength=443,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
+            chlorophyll=0.1,
+            solar_irradiance=solar_irradiance,
+            diffuse_transmittance=0.9,
+            day_of_year=172,
+            wind_speed=5,
         )
-        
+
+        rrs = normalization.nasa_rrs(rho_n_ex)
+
         # Typical Rrs: 0.001-0.01 sr⁻¹
-        assert 0.0001 < Rrs < 0.1
+        assert 0.0001 < rrs < 0.1

@@ -143,11 +143,11 @@ class TestRayleighReflectancePressureCorrected:
     def test_returns_reasonable_values(self):
         """Test that corrected reflectance is reasonable."""
         rho = rayleigh.rayleigh_reflectance_pressure_corrected(
-            rho_standard=0.1,
+            rayleigh_reflectance_std=0.1,
             wavelength=443,
             pressure=1000,
-            theta_s=30,
-            theta_v=30,
+            solar_zenith=30,
+            view_zenith=30,
         )
         assert rho > 0
         assert rho < 1.0
@@ -156,11 +156,11 @@ class TestRayleighReflectancePressureCorrected:
         """Test that standard pressure gives nearly same value."""
         rho_standard = 0.1
         rho_corrected = rayleigh.rayleigh_reflectance_pressure_corrected(
-            rho_standard=rho_standard,
+            rayleigh_reflectance_std=rho_standard,
             wavelength=443,
             pressure=1013.25,
-            theta_s=30,
-            theta_v=30,
+            solar_zenith=30,
+            view_zenith=30,
         )
         # Should be very close at standard pressure
         assert abs(rho_corrected - rho_standard) < 0.01
@@ -168,18 +168,18 @@ class TestRayleighReflectancePressureCorrected:
     def test_pressure_scaling(self):
         """Test that lower pressure gives lower reflectance."""
         rho_high_p = rayleigh.rayleigh_reflectance_pressure_corrected(
-            rho_standard=0.1,
+            rayleigh_reflectance_std=0.1,
             wavelength=443,
             pressure=1050,
-            theta_s=30,
-            theta_v=30,
+            solar_zenith=30,
+            view_zenith=30,
         )
         rho_low_p = rayleigh.rayleigh_reflectance_pressure_corrected(
-            rho_standard=0.1,
+            rayleigh_reflectance_std=0.1,
             wavelength=443,
             pressure=950,
-            theta_s=30,
-            theta_v=30,
+            solar_zenith=30,
+            view_zenith=30,
         )
         assert rho_low_p < rho_high_p
 
@@ -192,27 +192,26 @@ class TestRayleighLUT:
         lut = rayleigh.RayleighLUT(sensor="seawifs")
         assert lut.sensor == "seawifs"
 
-    def test_interpolate_returns_stokes(self):
-        """Test that interpolation returns Stokes-like tuple."""
+    def test_interpolate_raises_without_load(self):
+        """Test that interpolation raises RuntimeError if LUT not loaded."""
         lut = rayleigh.RayleighLUT(sensor="seawifs")
-        result = lut.interpolate(
-            wavelength=443,
-            theta_s=30,
-            theta_v=30,
-            phi=90,
-            wind_speed=5.0,
-        )
-        # Should return (I, Q, U) tuple or similar
-        assert len(result) >= 1
+        with pytest.raises(RuntimeError):
+            lut.interpolate(
+                wavelength=443,
+                solar_zenith=30,
+                view_zenith=30,
+                relative_azimuth=90,
+                wind_speed=5.0,
+            )
 
     def test_compute_synthetic(self):
         """Test synthetic Rayleigh computation."""
         lut = rayleigh.RayleighLUT(sensor="modis_aqua")
         rho_r = lut.compute_synthetic(
             wavelength=443,
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
             wind_speed=5.0,
         )
         assert rho_r > 0

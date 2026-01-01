@@ -66,9 +66,10 @@ class TestWaveFacetProbability:
         slope = 0.1
         p_low_wind = glint.wave_facet_probability(slope, 0.0, 2.0)
         p_high_wind = glint.wave_facet_probability(slope, 0.0, 15.0)
-        
-        # Higher wind = more large slopes = higher probability at this slope
-        assert p_high_wind > p_low_wind
+
+        # Higher wind = broader distribution = lower peak probability
+        # At a fixed non-zero slope, probability decreases as distribution broadens
+        assert p_high_wind < p_low_wind
 
 
 class TestNormalizedSunGlint:
@@ -77,9 +78,9 @@ class TestNormalizedSunGlint:
     def test_positive_values(self):
         """Test that normalized glint is positive."""
         L_GN = glint.normalized_sun_glint(
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
             wind_speed=5.0,
         )
         assert L_GN >= 0
@@ -87,50 +88,80 @@ class TestNormalizedSunGlint:
     def test_units(self):
         """Test that result is in inverse steradians."""
         L_GN = glint.normalized_sun_glint(
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
             wind_speed=5.0,
         )
         # Should be in reasonable range for L_GN (typically < 0.1 sr⁻¹)
         assert L_GN < 1.0
 
     def test_away_from_specular(self):
-        """Test low glint away from specular direction."""
-        # Looking opposite to sun direction
-        L_GN = glint.normalized_sun_glint(
-            theta_s=30,
-            theta_v=30,
-            phi=180,  # Opposite side from sun
+        """Test lower glint away from specular direction."""
+        # For equal solar and view zenith angles, specular occurs at 180° azimuth
+        # (looking back towards the sun direction)
+        L_GN_specular = glint.normalized_sun_glint(
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=180,  # Near specular direction
             wind_speed=5.0,
         )
-        # Should be small away from specular
-        assert L_GN < 0.01
+        L_GN_away = glint.normalized_sun_glint(
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=0,  # Away from specular
+            wind_speed=5.0,
+        )
+        # Should be lower away from specular
+        assert L_GN_away < L_GN_specular
 
 
 class TestGlintMask:
     """Tests for glint masking function."""
 
     def test_masks_high_glint(self):
-        """Test that high glint pixels are masked."""
-        L_GN = np.array([0.001, 0.003, 0.006, 0.010])
-        mask = glint.glint_mask(L_GN, threshold=0.005)
-        
-        # First two should be unmasked (False), last two masked (True)
-        assert not mask[0]
-        assert not mask[1]
-        assert mask[2]
-        assert mask[3]
+        """Test that high glint pixels are masked based on geometry."""
+        # Test with geometry that produces very low glint (high angles)
+        mask_low = glint.glint_mask(
+            solar_zenith=70,
+            view_zenith=70,
+            relative_azimuth=90,  # Away from specular
+            wind_speed=5.0,
+            threshold=0.005,
+        )
+        assert not mask_low  # Should not be masked
+
+        # Test with geometry that produces high glint (near specular)
+        mask_high = glint.glint_mask(
+            solar_zenith=10,
+            view_zenith=10,
+            relative_azimuth=0,  # Near specular
+            wind_speed=5.0,
+            threshold=0.005,
+        )
+        # Near specular geometry should produce higher glint
+        assert mask_high  # Should be masked
 
     def test_default_threshold(self):
         """Test default threshold of 0.005 sr⁻¹."""
-        L_GN = 0.004
-        mask = glint.glint_mask(L_GN)
-        assert not mask  # Below default threshold
+        # Test geometry with very low glint
+        mask_low = glint.glint_mask(
+            solar_zenith=70,
+            view_zenith=70,
+            relative_azimuth=90,
+            wind_speed=5.0,
+        )
+        assert not mask_low  # Below default threshold
 
-        L_GN = 0.006
-        mask = glint.glint_mask(L_GN)
-        assert mask  # Above default threshold
+        # Test geometry near specular (high glint)
+        mask_high = glint.glint_mask(
+            solar_zenith=10,
+            view_zenith=10,
+            relative_azimuth=0,
+            wind_speed=2.0,
+        )
+        # This geometry should produce high glint and be masked
+        assert mask_high
 
 
 class TestDirectTransmittance:
@@ -139,22 +170,35 @@ class TestDirectTransmittance:
     def test_zenith_path(self):
         """Test transmittance for vertical path."""
         tau = 0.3
-        T = glint.direct_transmittance(tau, 0.0)
+        T = glint.direct_transmittance(
+            zenith_angle=0.0,
+            wavelength=550,
+            rayleigh_tau=tau,
+            aerosol_tau=0.0,
+        )
         expected = np.exp(-tau)
         assert abs(T - expected) < 1e-10
 
     def test_increasing_path_length(self):
         """Test that transmittance decreases with angle."""
         tau = 0.3
-        T_0 = glint.direct_transmittance(tau, 0.0)
-        T_30 = glint.direct_transmittance(tau, 30.0)
-        T_60 = glint.direct_transmittance(tau, 60.0)
-        
+        T_0 = glint.direct_transmittance(
+            zenith_angle=0.0, wavelength=550, rayleigh_tau=tau, aerosol_tau=0.0
+        )
+        T_30 = glint.direct_transmittance(
+            zenith_angle=30.0, wavelength=550, rayleigh_tau=tau, aerosol_tau=0.0
+        )
+        T_60 = glint.direct_transmittance(
+            zenith_angle=60.0, wavelength=550, rayleigh_tau=tau, aerosol_tau=0.0
+        )
+
         assert T_0 > T_30 > T_60
 
     def test_range_zero_to_one(self):
         """Test that transmittance is between 0 and 1."""
-        T = glint.direct_transmittance(0.5, 45.0)
+        T = glint.direct_transmittance(
+            zenith_angle=45.0, wavelength=550, rayleigh_tau=0.5, aerosol_tau=0.0
+        )
         assert 0 < T < 1
 
 
@@ -166,20 +210,42 @@ class TestTwoPathTransmittance:
         tau = 0.3
         theta_s = 30.0
         theta_v = 45.0
-        
-        T_two = glint.two_path_transmittance(tau, theta_s, theta_v)
-        T_s = glint.direct_transmittance(tau, theta_s)
-        T_v = glint.direct_transmittance(tau, theta_v)
-        
+
+        T_two = glint.two_path_transmittance(
+            solar_zenith=theta_s,
+            view_zenith=theta_v,
+            wavelength=550,
+            rayleigh_tau=tau,
+            aerosol_tau=0.0,
+        )
+        T_s = glint.direct_transmittance(
+            zenith_angle=theta_s, wavelength=550, rayleigh_tau=tau, aerosol_tau=0.0
+        )
+        T_v = glint.direct_transmittance(
+            zenith_angle=theta_v, wavelength=550, rayleigh_tau=tau, aerosol_tau=0.0
+        )
+
         expected = T_s * T_v
         assert abs(T_two - expected) < 1e-10
 
     def test_symmetric(self):
         """Test symmetry in sun and view angles."""
         tau = 0.3
-        T_1 = glint.two_path_transmittance(tau, 30.0, 45.0)
-        T_2 = glint.two_path_transmittance(tau, 45.0, 30.0)
-        
+        T_1 = glint.two_path_transmittance(
+            solar_zenith=30.0,
+            view_zenith=45.0,
+            wavelength=550,
+            rayleigh_tau=tau,
+            aerosol_tau=0.0,
+        )
+        T_2 = glint.two_path_transmittance(
+            solar_zenith=45.0,
+            view_zenith=30.0,
+            wavelength=550,
+            rayleigh_tau=tau,
+            aerosol_tau=0.0,
+        )
+
         assert abs(T_1 - T_2) < 1e-10
 
 
@@ -189,12 +255,12 @@ class TestSunGlintReflectance:
     def test_returns_reflectance(self):
         """Test that result is a valid reflectance."""
         rho_g = glint.sun_glint_reflectance(
-            theta_s=30,
-            theta_v=30,
-            phi=90,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
             wind_speed=5.0,
-            tau_rayleigh=0.15,
-            tau_aerosol=0.1,
+            wavelength=550,
+            aerosol_tau=0.1,
         )
         assert rho_g >= 0
 
@@ -202,14 +268,20 @@ class TestSunGlintReflectance:
         """Test that glint can increase with wind (depends on geometry)."""
         # This depends strongly on geometry, so just check it runs
         rho_low = glint.sun_glint_reflectance(
-            theta_s=30, theta_v=30, phi=90,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
             wind_speed=2.0,
-            tau_rayleigh=0.15, tau_aerosol=0.1,
+            wavelength=550,
+            aerosol_tau=0.1,
         )
         rho_high = glint.sun_glint_reflectance(
-            theta_s=30, theta_v=30, phi=90,
+            solar_zenith=30,
+            view_zenith=30,
+            relative_azimuth=90,
             wind_speed=15.0,
-            tau_rayleigh=0.15, tau_aerosol=0.1,
+            wavelength=550,
+            aerosol_tau=0.1,
         )
         # Both should be valid
         assert rho_low >= 0

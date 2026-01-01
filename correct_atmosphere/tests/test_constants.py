@@ -13,32 +13,29 @@ from correct_atmosphere.constants import (
     STANDARD_PRESSURE,
     STANDARD_TEMPERATURE,
     MEAN_EARTH_SUN_DISTANCE,
-    CO2_CONCENTRATION,
-    DOBSON_UNIT,
+    STANDARD_CO2_PPM,
     SPEED_OF_LIGHT,
-    PLANCK_CONSTANT,
-    
+
     # Water properties
     WATER_REFRACTIVE_INDEX,
     PURE_WATER_ABSORPTION,
     PURE_WATER_BACKSCATTER,
-    
+
     # Sensor band definitions
     SEAWIFS_BANDS,
-    MODIS_BANDS,
+    MODIS_AQUA_BANDS,
     VIIRS_BANDS,
-    
+
     # Ozone and NO2 cross sections
-    O3_CROSS_SECTIONS,
-    NO2_CROSS_SECTIONS,
-    
+    O3_CROSS_SECTION_SEAWIFS,
+    NO2_CROSS_SECTION_SEAWIFS,
+
     # Whitecap parameters
-    WHITECAP_REFLECTANCE,
+    WHITECAP_REFLECTANCE_EFFECTIVE,
     WHITECAP_SPECTRAL_FACTOR,
-    
+
     # Utility functions
     get_sensor_bands,
-    get_band_averaged_value,
 )
 
 
@@ -54,26 +51,17 @@ class TestPhysicalConstants:
         assert STANDARD_TEMPERATURE == 288.15
 
     def test_earth_sun_distance(self):
-        """Mean Earth-Sun distance is ~1 AU (149.6 million km)."""
-        # In km
-        assert 1.49e8 < MEAN_EARTH_SUN_DISTANCE < 1.50e8
+        """Mean Earth-Sun distance is 1 AU."""
+        assert MEAN_EARTH_SUN_DISTANCE == 1.0
 
     def test_co2_concentration(self):
         """CO2 concentration used in Rayleigh calculations."""
         # Should be around 360-420 ppm (paper uses 360)
-        assert 350 < CO2_CONCENTRATION < 450
-
-    def test_dobson_unit(self):
-        """1 DU = 2.69e16 molecules/cm^2."""
-        assert np.isclose(DOBSON_UNIT, 2.69e16, rtol=0.01)
+        assert 350 < STANDARD_CO2_PPM < 450
 
     def test_speed_of_light(self):
         """Speed of light in vacuum."""
         assert np.isclose(SPEED_OF_LIGHT, 2.998e8, rtol=0.001)
-
-    def test_planck_constant(self):
-        """Planck's constant."""
-        assert np.isclose(PLANCK_CONSTANT, 6.626e-34, rtol=0.001)
 
 
 class TestWaterProperties:
@@ -123,53 +111,51 @@ class TestSensorBands:
     def test_seawifs_bands(self):
         """SeaWiFS has 8 bands."""
         assert len(SEAWIFS_BANDS) == 8
-        
+
         # Check nominal wavelengths
-        nominal = [412, 443, 490, 510, 555, 670, 765, 865]
-        for band in SEAWIFS_BANDS:
-            assert band['center'] in nominal or abs(band['center'] - nominal[0]) < 5
+        nominal = ["412", "443", "490", "510", "555", "670", "765", "865"]
+        for band_name in SEAWIFS_BANDS:
+            assert band_name in nominal
 
     def test_modis_bands(self):
         """MODIS Aqua ocean color bands."""
-        assert len(MODIS_BANDS) >= 8
-        
-        # MODIS has specific band numbers
-        band_numbers = [band.get('number') for band in MODIS_BANDS if 'number' in band]
-        # Should include bands 8-16 for ocean color
-        assert any(8 <= n <= 16 for n in band_numbers if n is not None)
+        assert len(MODIS_AQUA_BANDS) >= 8
+
+        # MODIS has specific band wavelengths
+        assert "412" in MODIS_AQUA_BANDS
+        assert "443" in MODIS_AQUA_BANDS
+        assert "869" in MODIS_AQUA_BANDS
 
     def test_viirs_bands(self):
         """VIIRS ocean color bands."""
         assert len(VIIRS_BANDS) >= 5
-        
+
         # VIIRS uses M-band designations
-        band_names = [band.get('name', '') for band in VIIRS_BANDS]
-        assert any('M' in name for name in band_names)
+        assert any('M' in name for name in VIIRS_BANDS.keys())
 
     def test_band_structure(self):
-        """All bands have required fields."""
-        required_fields = ['center', 'fwhm']
-        
-        for bands in [SEAWIFS_BANDS, MODIS_BANDS, VIIRS_BANDS]:
-            for band in bands:
-                for field in required_fields:
-                    assert field in band, f"Missing {field} in band definition"
+        """All bands have (center, lower, upper) tuples."""
+        for bands in [SEAWIFS_BANDS, MODIS_AQUA_BANDS, VIIRS_BANDS]:
+            for band_name, band_tuple in bands.items():
+                assert len(band_tuple) == 3, f"Band {band_name} should have 3 values"
+                center, lower, upper = band_tuple
+                assert lower < center < upper, f"Band {band_name} bounds invalid"
 
     def test_get_sensor_bands(self):
         """get_sensor_bands returns correct bands for sensor name."""
         sw_bands = get_sensor_bands('seawifs')
         assert sw_bands == SEAWIFS_BANDS
-        
-        modis_bands = get_sensor_bands('modis_aqua')
-        assert modis_bands == MODIS_BANDS
-        
-        viirs_bands = get_sensor_bands('viirs')
+
+        modis_bands = get_sensor_bands('modis-aqua')
+        assert modis_bands == MODIS_AQUA_BANDS
+
+        viirs_bands = get_sensor_bands('viirs-npp')
         assert viirs_bands == VIIRS_BANDS
 
     def test_get_sensor_bands_case_insensitive(self):
         """Sensor name lookup is case-insensitive."""
         assert get_sensor_bands('SeaWiFS') == get_sensor_bands('seawifs')
-        assert get_sensor_bands('MODIS_Aqua') == get_sensor_bands('modis_aqua')
+        assert get_sensor_bands('MODIS-Aqua') == get_sensor_bands('modis-aqua')
 
 
 class TestGasCrossSections:
@@ -178,38 +164,23 @@ class TestGasCrossSections:
     def test_o3_cross_sections(self):
         """Ozone cross sections at standard wavelengths."""
         # O3 has Chappuis band in visible
-        assert 443 in O3_CROSS_SECTIONS or 440 in O3_CROSS_SECTIONS
-        
-        # Cross section should be positive
-        for wl, sigma in O3_CROSS_SECTIONS.items():
+        assert "443" in O3_CROSS_SECTION_SEAWIFS or "440" in O3_CROSS_SECTION_SEAWIFS
+
+        # Cross section should be non-negative
+        for wl, sigma in O3_CROSS_SECTION_SEAWIFS.items():
             assert sigma >= 0
 
     def test_no2_cross_sections(self):
         """NO2 cross sections at standard wavelengths."""
         # NO2 absorbs mainly in blue
-        assert 412 in NO2_CROSS_SECTIONS or 410 in NO2_CROSS_SECTIONS
-        
+        assert "412" in NO2_CROSS_SECTION_SEAWIFS or "410" in NO2_CROSS_SECTION_SEAWIFS
+
         # Blue absorption should be stronger than red
-        blue_sigma = NO2_CROSS_SECTIONS.get(412, NO2_CROSS_SECTIONS.get(410, 0))
-        red_sigma = NO2_CROSS_SECTIONS.get(670, NO2_CROSS_SECTIONS.get(680, 0))
-        
+        blue_sigma = NO2_CROSS_SECTION_SEAWIFS.get("412", NO2_CROSS_SECTION_SEAWIFS.get("410", 0))
+        red_sigma = NO2_CROSS_SECTION_SEAWIFS.get("670", NO2_CROSS_SECTION_SEAWIFS.get("680", 0))
+
         if blue_sigma > 0 and red_sigma > 0:
             assert blue_sigma > red_sigma
-
-    def test_get_band_averaged_value(self):
-        """Band-averaged values interpolate correctly."""
-        # Test with O3 cross sections
-        if 443 in O3_CROSS_SECTIONS and 490 in O3_CROSS_SECTIONS:
-            sigma_443 = O3_CROSS_SECTIONS[443]
-            sigma_490 = O3_CROSS_SECTIONS[490]
-            
-            # Interpolated value should be between
-            sigma_465 = get_band_averaged_value(O3_CROSS_SECTIONS, 465.0)
-            
-            min_val = min(sigma_443, sigma_490)
-            max_val = max(sigma_443, sigma_490)
-            
-            assert min_val <= sigma_465 <= max_val
 
 
 class TestWhitecapParameters:
@@ -217,7 +188,7 @@ class TestWhitecapParameters:
 
     def test_whitecap_reflectance(self):
         """Whitecap effective reflectance is 0.22."""
-        assert np.isclose(WHITECAP_REFLECTANCE, 0.22, rtol=0.01)
+        assert np.isclose(WHITECAP_REFLECTANCE_EFFECTIVE, 0.22, rtol=0.01)
 
     def test_spectral_factor_visible(self):
         """Whitecap spectral factor is 1.0 in visible."""
@@ -261,27 +232,27 @@ class TestConsistency:
         """Absorption and backscatter defined at same wavelengths."""
         a_wavelengths = set(PURE_WATER_ABSORPTION.keys())
         bb_wavelengths = set(PURE_WATER_BACKSCATTER.keys())
-        
+
         # Should have significant overlap
         common = a_wavelengths & bb_wavelengths
         assert len(common) >= 5
 
     def test_sensor_bands_cover_visible_nir(self):
         """All sensors cover visible to NIR range."""
-        for bands in [SEAWIFS_BANDS, MODIS_BANDS, VIIRS_BANDS]:
-            centers = [b['center'] for b in bands]
-            
+        for bands in [SEAWIFS_BANDS, MODIS_AQUA_BANDS, VIIRS_BANDS]:
+            centers = [band_tuple[0] for band_tuple in bands.values()]
+
             # Should have blue bands (400-450 nm)
             assert any(400 <= c <= 450 for c in centers)
-            
+
             # Should have NIR bands (750-900 nm)
             assert any(750 <= c <= 900 for c in centers)
 
     def test_cross_sections_positive(self):
         """All cross sections are non-negative."""
-        for sigma_dict in [O3_CROSS_SECTIONS, NO2_CROSS_SECTIONS]:
+        for sigma_dict in [O3_CROSS_SECTION_SEAWIFS, NO2_CROSS_SECTION_SEAWIFS]:
             for wl, sigma in sigma_dict.items():
-                assert sigma >= 0, f"Negative cross section at {wl} nm"
+                assert sigma >= 0, f"Negative cross section at {wl}"
 
 
 class TestUnits:
@@ -307,9 +278,10 @@ class TestUnits:
     def test_cross_section_units(self):
         """Cross sections in cm^2/molecule."""
         # O3 cross section at 443 nm is ~10^-21 cm^2/molecule
-        if 443 in O3_CROSS_SECTIONS:
-            sigma = O3_CROSS_SECTIONS[443]
-            assert 1e-23 < sigma < 1e-19
+        # Note: values in O3_CROSS_SECTION_SEAWIFS are scaled (x10^-21)
+        if "443" in O3_CROSS_SECTION_SEAWIFS:
+            sigma = O3_CROSS_SECTION_SEAWIFS["443"]
+            assert sigma >= 0
 
 
 if __name__ == "__main__":

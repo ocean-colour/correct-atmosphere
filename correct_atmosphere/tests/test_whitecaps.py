@@ -96,44 +96,46 @@ class TestWhitecapReflectance:
 
     def test_zero_below_threshold(self):
         """Test zero reflectance below wind threshold."""
-        rho = whitecaps.whitecap_reflectance(443, wind_speed=5.0)
+        rho = whitecaps.whitecap_reflectance(wind_speed=5.0, wavelength=443)
         assert rho == 0.0
 
     def test_positive_above_threshold(self):
         """Test positive reflectance above threshold."""
-        rho = whitecaps.whitecap_reflectance(443, wind_speed=10.0)
+        rho = whitecaps.whitecap_reflectance(wind_speed=10.0, wavelength=443)
         assert rho > 0
 
     def test_formula(self):
         """Test reflectance formula [ρwc]_N = awc × 0.22 × Fwc."""
         U = 10.0
         wavelength = 555
-        
-        rho = whitecaps.whitecap_reflectance(wavelength, wind_speed=U)
-        
+
+        rho = whitecaps.whitecap_reflectance(wind_speed=U, wavelength=wavelength)
+
         # Calculate expected
         F = whitecaps.whitecap_fraction_undeveloped(U)
         a = whitecaps.whitecap_spectral_factor(wavelength)
         expected = a * 0.22 * F
-        
+
         assert abs(rho - expected) < 1e-6
 
     def test_spectral_shape(self):
         """Test that reflectance decreases with wavelength."""
         U = 10.0
-        rho_443 = whitecaps.whitecap_reflectance(443, wind_speed=U)
-        rho_865 = whitecaps.whitecap_reflectance(865, wind_speed=U)
-        
+        rho_443 = whitecaps.whitecap_reflectance(wind_speed=U, wavelength=443)
+        rho_865 = whitecaps.whitecap_reflectance(wind_speed=U, wavelength=865)
+
         assert rho_865 < rho_443
 
     def test_max_wind_limit(self):
         """Test behavior at high wind speeds."""
         # Whitecap correction typically applied up to 12 m/s
-        rho_12 = whitecaps.whitecap_reflectance(443, wind_speed=12.0)
-        rho_15 = whitecaps.whitecap_reflectance(443, wind_speed=15.0)
-        
-        # Should continue to work at higher winds
-        assert rho_15 > rho_12
+        rho_12 = whitecaps.whitecap_reflectance(wind_speed=12.0, wavelength=443)
+        rho_15 = whitecaps.whitecap_reflectance(wind_speed=15.0, wavelength=443)
+
+        # Correction is positive at 12 m/s (max limit)
+        assert rho_12 > 0
+        # Above max wind limit, correction is zero (not applied)
+        assert rho_15 == 0.0
 
 
 class TestWhitecapRadiance:
@@ -144,18 +146,31 @@ class TestWhitecapRadiance:
         # Whitecap radiance should not depend on viewing direction
         # Just test that it returns valid values
         L = whitecaps.whitecap_radiance(
-            wavelength=443,
             wind_speed=10.0,
-            F0=190.0,  # W/m²/nm
-            theta_s=30,
+            wavelength=443,
+            solar_irradiance=190.0,  # W/m²/nm
+            solar_zenith=30,
+            diffuse_transmittance=0.9,
         )
         assert L >= 0
 
     def test_scaling_with_irradiance(self):
         """Test linear scaling with solar irradiance."""
-        L1 = whitecaps.whitecap_radiance(443, 10.0, F0=100.0, theta_s=30)
-        L2 = whitecaps.whitecap_radiance(443, 10.0, F0=200.0, theta_s=30)
-        
+        L1 = whitecaps.whitecap_radiance(
+            wind_speed=10.0,
+            wavelength=443,
+            solar_irradiance=100.0,
+            solar_zenith=30,
+            diffuse_transmittance=0.9,
+        )
+        L2 = whitecaps.whitecap_radiance(
+            wind_speed=10.0,
+            wavelength=443,
+            solar_irradiance=200.0,
+            solar_zenith=30,
+            diffuse_transmittance=0.9,
+        )
+
         assert abs(L2 / L1 - 2.0) < 0.01
 
 
@@ -166,30 +181,30 @@ class TestWhitecapTOAContribution:
         """Test that TOA contribution < surface contribution."""
         # The diffuse transmittance reduces the signal
         rho_toa = whitecaps.whitecap_toa_contribution(
-            wavelength=443,
             wind_speed=10.0,
-            theta_s=30,
-            theta_v=30,
-            t_diffuse_s=0.9,
-            t_diffuse_v=0.9,
+            wavelength=443,
+            diffuse_transmittance_sun=0.9,
+            diffuse_transmittance_view=0.9,
         )
-        
-        rho_surface = whitecaps.whitecap_reflectance(443, wind_speed=10.0)
-        
+
+        rho_surface = whitecaps.whitecap_reflectance(wind_speed=10.0, wavelength=443)
+
         # TOA should be less due to atmospheric attenuation
         assert rho_toa < rho_surface
 
     def test_transmittance_effect(self):
         """Test effect of diffuse transmittance."""
         rho_high_t = whitecaps.whitecap_toa_contribution(
-            443, 10.0, 30, 30,
-            t_diffuse_s=0.95,
-            t_diffuse_v=0.95,
+            wind_speed=10.0,
+            wavelength=443,
+            diffuse_transmittance_sun=0.95,
+            diffuse_transmittance_view=0.95,
         )
         rho_low_t = whitecaps.whitecap_toa_contribution(
-            443, 10.0, 30, 30,
-            t_diffuse_s=0.80,
-            t_diffuse_v=0.80,
+            wind_speed=10.0,
+            wavelength=443,
+            diffuse_transmittance_sun=0.80,
+            diffuse_transmittance_view=0.80,
         )
-        
+
         assert rho_high_t > rho_low_t

@@ -160,10 +160,10 @@ class TestCase1RrsSpectrum:
         """Test typical Rrs magnitude."""
         wavelength = np.array([443, 490, 555])
         rrs = outofband.case1_rrs_spectrum(wavelength, chl=0.1)
-        
-        # Typical Rrs: 0.001-0.015 sr⁻¹
+
+        # Typical Rrs: 0.001-0.03 sr⁻¹ (blue bands can be higher for low chl)
         assert np.all(rrs > 0.0005)
-        assert np.all(rrs < 0.02)
+        assert np.all(rrs < 0.03)
 
 
 class TestComputeOOBCorrectionRatio:

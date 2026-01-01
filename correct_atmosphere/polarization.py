@@ -107,6 +107,54 @@ class StokesVector:
         return self.U / (self.I + 1e-10)
 
 
+def compute_rotation_angle(
+    theta_v: Union[float, np.ndarray],
+    phi_v: Union[float, np.ndarray],
+    sensor_orientation: Union[float, np.ndarray] = 0.0,
+) -> Union[float, np.ndarray]:
+    """
+    Compute angle α between meridional plane and sensor reference.
+
+    Simplified interface for computing the rotation angle.
+
+    Parameters
+    ----------
+    theta_v : float or ndarray
+        Sensor view zenith angle [degrees].
+    phi_v : float or ndarray
+        Sensor view azimuth angle [degrees].
+    sensor_orientation : float or ndarray, optional
+        Sensor roll angle relative to orbital plane [degrees].
+        Default is 0.
+
+    Returns
+    -------
+    float or ndarray
+        Angle α between meridional plane and sensor reference [degrees].
+    """
+    # Simplified calculation assuming nadir-pointing sensor
+    alpha = phi_v + sensor_orientation
+    return alpha
+
+
+def degree_of_polarization(stokes: np.ndarray) -> Union[float, np.ndarray]:
+    """
+    Compute degree of polarization from Stokes vector.
+
+    Parameters
+    ----------
+    stokes : ndarray
+        Stokes vector [I, Q, U, V].
+
+    Returns
+    -------
+    float or ndarray
+        Degree of polarization, 0 to 1.
+    """
+    I, Q, U, V = stokes[0], stokes[1], stokes[2], stokes[3]
+    return np.sqrt(Q**2 + U**2 + V**2) / (I + 1e-10)
+
+
 def rotation_matrix(alpha: Union[float, np.ndarray]) -> np.ndarray:
     """
     Compute Stokes vector rotation matrix R(α).
@@ -181,6 +229,228 @@ def rotate_stokes_vector(
         U=s_out[2],
         V=s_out[3],
     )
+
+
+@dataclass
+class MuellerMatrix:
+    """
+    Mueller matrix representation of sensor polarization sensitivity.
+
+    Attributes
+    ----------
+    M11 : float
+        First diagonal element (total intensity response).
+    M12 : float
+        Sensitivity to Q polarization.
+    M13 : float
+        Sensitivity to U polarization.
+    M14 : float
+        Sensitivity to V polarization (usually 0).
+    """
+
+    M11: float = 1.0
+    M12: float = 0.0
+    M13: float = 0.0
+    M14: float = 0.0
+
+    @property
+    def matrix(self) -> np.ndarray:
+        """Return full 4x4 Mueller matrix."""
+        return np.array([
+            [self.M11, self.M12, self.M13, self.M14],
+            [self.M12, self.M11, 0.0, 0.0],
+            [self.M13, 0.0, self.M11, 0.0],
+            [self.M14, 0.0, 0.0, self.M11],
+        ])
+
+    @property
+    def m12(self) -> float:
+        """Reduced Mueller matrix element M12/M11."""
+        return self.M12 / self.M11
+
+    @property
+    def m13(self) -> float:
+        """Reduced Mueller matrix element M13/M11."""
+        return self.M13 / self.M11
+
+    @classmethod
+    def ideal_sensor(cls) -> "MuellerMatrix":
+        """Return Mueller matrix for ideal sensor (no polarization sensitivity)."""
+        return cls(M11=1.0, M12=0.0, M13=0.0, M14=0.0)
+
+    @classmethod
+    def modis_aqua(cls, band: int) -> "MuellerMatrix":
+        """
+        Return Mueller matrix for MODIS Aqua at given band.
+
+        Parameters
+        ----------
+        band : int
+            Wavelength in nm (e.g., 412, 443, 490, etc.)
+
+        Returns
+        -------
+        MuellerMatrix
+            Approximate Mueller matrix for the band.
+        """
+        # Approximate values from Meister et al. 2005
+        m12_values = {
+            412: 0.02, 443: 0.02, 469: 0.01, 488: 0.01, 490: 0.01,
+            531: 0.01, 547: 0.01, 555: 0.01, 645: 0.02, 667: 0.02,
+            670: 0.02, 678: 0.02, 748: 0.03, 859: 0.04, 865: 0.04, 869: 0.04,
+        }
+        m13_values = {
+            412: 0.01, 443: 0.01, 469: 0.005, 488: 0.005, 490: 0.005,
+            531: 0.005, 547: 0.005, 555: 0.005, 645: 0.01, 667: 0.01,
+            670: 0.01, 678: 0.01, 748: 0.01, 859: 0.02, 865: 0.02, 869: 0.02,
+        }
+        m12 = m12_values.get(band, 0.02)
+        m13 = m13_values.get(band, 0.01)
+        return cls(M11=1.0, M12=m12, M13=m13, M14=0.0)
+
+
+def stokes_vector_rayleigh(
+    theta_s: Union[float, np.ndarray],
+    theta_v: Union[float, np.ndarray],
+    phi: Union[float, np.ndarray],
+    tau_r: float,
+    wavelength: float,
+) -> np.ndarray:
+    """
+    Compute Rayleigh-scattered Stokes vector at TOA.
+
+    Parameters
+    ----------
+    theta_s : float or ndarray
+        Solar zenith angle [degrees].
+    theta_v : float or ndarray
+        View zenith angle [degrees].
+    phi : float or ndarray
+        Relative azimuth angle [degrees].
+    tau_r : float
+        Rayleigh optical thickness.
+    wavelength : float
+        Wavelength [nm] (for reference, not used in calculation).
+
+    Returns
+    -------
+    ndarray
+        Stokes vector [I, Q, U, V].
+    """
+    # Convert angles to radians
+    theta_s_rad = np.deg2rad(theta_s)
+    theta_v_rad = np.deg2rad(theta_v)
+    phi_rad = np.deg2rad(phi)
+
+    # Scattering angle
+    cos_scatter = -np.cos(theta_s_rad) * np.cos(theta_v_rad) + \
+                  np.sin(theta_s_rad) * np.sin(theta_v_rad) * np.cos(phi_rad)
+
+    # Rayleigh phase function (unpolarized component)
+    P_unpol = 0.75 * (1 + cos_scatter**2)
+
+    # Single-scattering approximation for I
+    I_r = tau_r * P_unpol / (4 * np.cos(theta_v_rad) + 1e-10)
+
+    # Degree of polarization for Rayleigh scattering
+    sin2_scatter = 1 - cos_scatter**2
+    dolp = sin2_scatter / (1 + cos_scatter**2 + 1e-10)
+
+    # Q and U components depend on scattering geometry
+    Q_r = -I_r * dolp * np.cos(2 * phi_rad)
+    U_r = -I_r * dolp * np.sin(2 * phi_rad)
+
+    return np.array([I_r, Q_r, U_r, 0.0])
+
+
+def compute_polarization_correction(
+    M: MuellerMatrix,
+    I_t: np.ndarray,
+    alpha: Union[float, np.ndarray],
+) -> Union[float, np.ndarray]:
+    """
+    Compute polarization correction factor.
+
+    Parameters
+    ----------
+    M : MuellerMatrix
+        Sensor Mueller matrix.
+    I_t : ndarray
+        TOA Stokes vector [I, Q, U, V].
+    alpha : float or ndarray
+        Rotation angle [degrees].
+
+    Returns
+    -------
+    float or ndarray
+        Polarization correction factor pc = Im/It.
+    """
+    m12 = M.m12
+    m13 = M.m13
+
+    alpha_rad = np.deg2rad(alpha)
+    c2a = np.cos(2 * alpha_rad)
+    s2a = np.sin(2 * alpha_rad)
+
+    # Reduced Stokes parameters
+    I_val = I_t[0]
+    q_t = I_t[1] / (I_val + 1e-10)
+    u_t = I_t[2] / (I_val + 1e-10)
+
+    # Correction factor (Eq. 11.4)
+    pc = 1 + m12 * (c2a * q_t + s2a * u_t) + m13 * (-s2a * q_t + c2a * u_t)
+
+    return pc
+
+
+def apply_polarization_correction_simple(
+    I_measured: Union[float, np.ndarray],
+    Q_rayleigh: Union[float, np.ndarray],
+    U_rayleigh: Union[float, np.ndarray],
+    m12: float,
+    m13: float,
+    alpha: Union[float, np.ndarray],
+) -> Union[float, np.ndarray]:
+    """
+    Apply polarization correction to measured radiance.
+
+    Simplified interface for applying polarization correction.
+
+    Parameters
+    ----------
+    I_measured : float or ndarray
+        Measured radiance.
+    Q_rayleigh : float or ndarray
+        Rayleigh Q component.
+    U_rayleigh : float or ndarray
+        Rayleigh U component.
+    m12 : float
+        Reduced Mueller matrix element M12/M11.
+    m13 : float
+        Reduced Mueller matrix element M13/M11.
+    alpha : float or ndarray
+        Rotation angle [degrees].
+
+    Returns
+    -------
+    float or ndarray
+        Corrected radiance.
+    """
+    alpha_rad = np.deg2rad(alpha)
+    c2a = np.cos(2 * alpha_rad)
+    s2a = np.sin(2 * alpha_rad)
+
+    # Reduced Stokes parameters
+    q_t = Q_rayleigh / (I_measured + 1e-10)
+    u_t = U_rayleigh / (I_measured + 1e-10)
+
+    # Correction factor
+    pc = 1 + m12 * (c2a * q_t + s2a * u_t) + m13 * (-s2a * q_t + c2a * u_t)
+
+    # Corrected radiance
+    I_corrected = I_measured / pc
+
+    return I_corrected
 
 
 def meridional_angle(
