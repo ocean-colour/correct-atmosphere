@@ -18,8 +18,7 @@ setup_keywords['long_description'] = ''
 if os.path.exists('README.md'):
     with open('README.md') as readme:
         setup_keywords['long_description'] = readme.read()
-setup_keywords['provides'] = [setup_keywords['name']]
-setup_keywords['requires'] = ['Python (>=3.11.0)']
+setup_keywords['python_requires'] = '>=3.11'
 setup_keywords['install_requires'] = [
     'seaborn', 'smart-open[s3]', 
     'scikit-learn', 'scikit-image', 'tqdm', 
@@ -27,9 +26,11 @@ setup_keywords['install_requires'] = [
     'xarray', 'h5netcdf', 'emcee', 'corner',
     'importlib-metadata', 'timm==0.3.2', 'IPython',
     'scikit-learn', 'scikit-image', 'tqdm',
-    'pysolar','pytest']
+    'pysolar']
+setup_keywords['extras_require'] = {
+    'dev': ['pytest', 'pytest-runner'],
+}
 setup_keywords['zip_safe'] = False
-setup_keywords['use_2to3'] = False
 setup_keywords['packages'] = find_packages()
 setup_keywords['setup_requires'] = ['pytest-runner']
 setup_keywords['tests_require'] = ['pytest']
