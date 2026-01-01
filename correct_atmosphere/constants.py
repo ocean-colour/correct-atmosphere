@@ -94,6 +94,29 @@ NIR_BANDS: Dict[str, Tuple[str, str]] = {
     "VIIRS-NOAA20": ("M6", "M7"),
 }
 
+#: Sensor band definitions for AtmosphericCorrection class
+SENSOR_BANDS: Dict[str, Dict] = {
+    "SEAWIFS": {
+        "center_wavelengths": [412, 443, 490, 510, 555, 670, 765, 865],
+        "bandwidths": [20, 20, 20, 20, 20, 20, 40, 40],
+    },
+    "MODIS": {
+        "center_wavelengths": [412, 443, 469, 488, 531, 547, 667, 678, 748, 869],
+        "bandwidths": [15, 10, 20, 10, 10, 10, 10, 10, 10, 15],
+    },
+    "VIIRS": {
+        "center_wavelengths": [412, 445, 488, 555, 672, 746, 865],
+        "bandwidths": [20, 18, 20, 20, 20, 15, 39],
+    },
+}
+
+#: NIR reference bands wavelengths for aerosol correction
+NIR_REFERENCE_BANDS: Dict[str, Dict[str, int]] = {
+    "SEAWIFS": {"short": 765, "long": 865},
+    "MODIS": {"short": 748, "long": 869},
+    "VIIRS": {"short": 746, "long": 865},
+}
+
 # =============================================================================
 # Band-Averaged Rayleigh Optical Thickness (Figure 6.5)
 # =============================================================================

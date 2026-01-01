@@ -107,7 +107,7 @@ def solar_irradiance():
     }
 
 
-@pytest.fixture(params=['seawifs', 'modis_aqua', 'viirs'])
+@pytest.fixture(params=['seawifs', 'modis_aqua', 'viirs_npp'])
 def sensor(request):
     """Parametrized fixture for different sensors."""
     return request.param
