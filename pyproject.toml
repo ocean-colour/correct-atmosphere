@@ -61,7 +61,7 @@ Documentation = "https://correct_atmosphere.readthedocs.io"
 Repository = "https://github.com/yourusername/correct_atmosphere"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["."]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
