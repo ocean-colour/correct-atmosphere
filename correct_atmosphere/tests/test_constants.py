@@ -36,6 +36,16 @@ from correct_atmosphere.constants import (
 
     # Utility functions
     get_sensor_bands,
+
+    # Unified sensor dictionaries
+    RAYLEIGH_OD,
+    O3_CROSS_SECTION,
+    NO2_CROSS_SECTION,
+    PURE_WATER_ABS,
+    PURE_WATER_BB,
+    RAYLEIGH_TAU_SEAWIFS,
+    RAYLEIGH_TAU_MODIS,
+    RAYLEIGH_TAU_VIIRS,
 )
 
 
@@ -223,6 +233,132 @@ class TestWhitecapParameters:
         for wl, expected_val in expected.items():
             if wl in WHITECAP_SPECTRAL_FACTOR:
                 assert np.isclose(WHITECAP_SPECTRAL_FACTOR[wl], expected_val, rtol=0.01)
+
+
+class TestUnifiedSensorDictionaries:
+    """Tests for unified sensor dictionaries."""
+
+    # Supported sensor name variants
+    SENSOR_KEYS = [
+        "SeaWiFS", "seawifs",
+        "MODIS-Aqua", "modis_aqua",
+        "MODIS-Terra", "modis_terra",
+        "VIIRS-NPP", "viirs_npp",
+        "VIIRS-NOAA20", "viirs_noaa20",
+    ]
+
+    def test_rayleigh_od_has_all_sensors(self):
+        """RAYLEIGH_OD contains all sensor variants."""
+        for sensor in self.SENSOR_KEYS:
+            assert sensor in RAYLEIGH_OD, f"Missing sensor: {sensor}"
+
+    def test_rayleigh_od_references_correct_data(self):
+        """RAYLEIGH_OD references the correct per-sensor dictionaries."""
+        assert RAYLEIGH_OD["SeaWiFS"] is RAYLEIGH_TAU_SEAWIFS
+        assert RAYLEIGH_OD["seawifs"] is RAYLEIGH_TAU_SEAWIFS
+        assert RAYLEIGH_OD["MODIS-Aqua"] is RAYLEIGH_TAU_MODIS
+        assert RAYLEIGH_OD["modis_aqua"] is RAYLEIGH_TAU_MODIS
+        assert RAYLEIGH_OD["VIIRS-NPP"] is RAYLEIGH_TAU_VIIRS
+        assert RAYLEIGH_OD["viirs_npp"] is RAYLEIGH_TAU_VIIRS
+
+    def test_rayleigh_od_values_positive(self):
+        """All Rayleigh optical depth values are positive."""
+        for sensor, tau_dict in RAYLEIGH_OD.items():
+            for band, tau in tau_dict.items():
+                assert tau > 0, f"Non-positive tau_r for {sensor}/{band}"
+
+    def test_rayleigh_od_decreases_with_wavelength(self):
+        """Rayleigh optical depth decreases with wavelength (lambda^-4)."""
+        # Check MODIS bands (numeric order)
+        modis_tau = RAYLEIGH_OD["MODIS-Aqua"]
+        assert modis_tau["412"] > modis_tau["443"] > modis_tau["869"]
+
+    def test_o3_cross_section_has_all_sensors(self):
+        """O3_CROSS_SECTION contains all sensor variants."""
+        for sensor in self.SENSOR_KEYS:
+            assert sensor in O3_CROSS_SECTION, f"Missing sensor: {sensor}"
+
+    def test_o3_cross_section_values_non_negative(self):
+        """All O3 cross section values are non-negative."""
+        for sensor, sigma_dict in O3_CROSS_SECTION.items():
+            for band, sigma in sigma_dict.items():
+                assert sigma >= 0, f"Negative O3 sigma for {sensor}/{band}"
+
+    def test_no2_cross_section_has_all_sensors(self):
+        """NO2_CROSS_SECTION contains all sensor variants."""
+        for sensor in self.SENSOR_KEYS:
+            assert sensor in NO2_CROSS_SECTION, f"Missing sensor: {sensor}"
+
+    def test_no2_cross_section_values_non_negative(self):
+        """All NO2 cross section values are non-negative."""
+        for sensor, sigma_dict in NO2_CROSS_SECTION.items():
+            for band, sigma in sigma_dict.items():
+                assert sigma >= 0, f"Negative NO2 sigma for {sensor}/{band}"
+
+    def test_pure_water_abs_has_all_sensors(self):
+        """PURE_WATER_ABS contains all sensor variants."""
+        for sensor in self.SENSOR_KEYS:
+            assert sensor in PURE_WATER_ABS, f"Missing sensor: {sensor}"
+
+    def test_pure_water_abs_values_positive(self):
+        """All pure water absorption values are positive."""
+        for sensor, a_dict in PURE_WATER_ABS.items():
+            for band, a_w in a_dict.items():
+                assert a_w > 0, f"Non-positive a_w for {sensor}/{band}"
+
+    def test_pure_water_abs_increases_with_wavelength(self):
+        """Pure water absorption increases toward NIR."""
+        # Check MODIS: blue absorption < NIR absorption
+        modis_abs = PURE_WATER_ABS["MODIS-Aqua"]
+        assert modis_abs["412"] < modis_abs["869"]
+
+    def test_pure_water_bb_has_all_sensors(self):
+        """PURE_WATER_BB contains all sensor variants."""
+        for sensor in self.SENSOR_KEYS:
+            assert sensor in PURE_WATER_BB, f"Missing sensor: {sensor}"
+
+    def test_pure_water_bb_values_positive(self):
+        """All pure water backscatter values are positive."""
+        for sensor, bb_dict in PURE_WATER_BB.items():
+            for band, bb_w in bb_dict.items():
+                assert bb_w > 0, f"Non-positive bb_w for {sensor}/{band}"
+
+    def test_pure_water_bb_decreases_with_wavelength(self):
+        """Pure water backscatter decreases with wavelength."""
+        # Check MODIS: blue backscatter > NIR backscatter
+        modis_bb = PURE_WATER_BB["MODIS-Aqua"]
+        assert modis_bb["412"] > modis_bb["869"]
+
+    def test_sensor_name_variants_return_same_data(self):
+        """Different sensor name variants return the same data."""
+        # SeaWiFS variants
+        assert RAYLEIGH_OD["SeaWiFS"] is RAYLEIGH_OD["seawifs"]
+        assert O3_CROSS_SECTION["SeaWiFS"] is O3_CROSS_SECTION["seawifs"]
+        assert NO2_CROSS_SECTION["SeaWiFS"] is NO2_CROSS_SECTION["seawifs"]
+        assert PURE_WATER_ABS["SeaWiFS"] is PURE_WATER_ABS["seawifs"]
+        assert PURE_WATER_BB["SeaWiFS"] is PURE_WATER_BB["seawifs"]
+
+        # MODIS-Aqua variants
+        assert RAYLEIGH_OD["MODIS-Aqua"] is RAYLEIGH_OD["modis_aqua"]
+        assert PURE_WATER_ABS["MODIS-Aqua"] is PURE_WATER_ABS["modis_aqua"]
+
+    def test_modis_bands_match_sensor_definition(self):
+        """MODIS unified dicts have bands matching MODIS_AQUA_BANDS."""
+        modis_band_names = set(MODIS_AQUA_BANDS.keys())
+        rayleigh_bands = set(RAYLEIGH_OD["MODIS-Aqua"].keys())
+        water_abs_bands = set(PURE_WATER_ABS["MODIS-Aqua"].keys())
+        water_bb_bands = set(PURE_WATER_BB["MODIS-Aqua"].keys())
+
+        # Rayleigh and water properties should cover main ocean color bands
+        assert rayleigh_bands.issubset(modis_band_names)
+        assert water_abs_bands == water_bb_bands
+
+    def test_seawifs_bands_match_sensor_definition(self):
+        """SeaWiFS unified dicts have bands matching SEAWIFS_BANDS."""
+        seawifs_band_names = set(SEAWIFS_BANDS.keys())
+        rayleigh_bands = set(RAYLEIGH_OD["SeaWiFS"].keys())
+
+        assert rayleigh_bands == seawifs_band_names
 
 
 class TestConsistency:

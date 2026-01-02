@@ -350,6 +350,36 @@ The package provides standard physical constants:
     nir_bands = get_nir_bands('MODIS-Aqua')
     print(f"NIR bands for aerosol: {nir_bands}")
 
+Sensor-Specific Optical Properties
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Unified dictionaries provide easy access to optical properties by sensor name:
+
+.. code-block:: python
+
+    from correct_atmosphere.constants import (
+        RAYLEIGH_OD,
+        O3_CROSS_SECTION,
+        NO2_CROSS_SECTION,
+        PURE_WATER_ABS,
+        PURE_WATER_BB,
+    )
+
+    # Access Rayleigh optical depth for any supported sensor
+    # Supports both "MODIS-Aqua" and "modis_aqua" key formats
+    modis_rayleigh = RAYLEIGH_OD['MODIS-Aqua']
+    print(f"MODIS Rayleigh OD at 443nm: {modis_rayleigh['443']:.4f}")
+
+    # Gas absorption cross sections by sensor
+    o3_sigma = O3_CROSS_SECTION['modis_aqua']
+    no2_sigma = NO2_CROSS_SECTION['modis_aqua']
+
+    # Pure water optical properties by sensor band
+    aw = PURE_WATER_ABS['MODIS-Aqua']   # absorption [m^-1]
+    bbw = PURE_WATER_BB['MODIS-Aqua']   # backscatter [m^-1]
+    print(f"Pure water absorption at 443nm: {aw['443']:.5f} m^-1")
+    print(f"Pure water backscatter at 443nm: {bbw['443']:.6f} m^-1")
+
 Next Steps
 ----------
 

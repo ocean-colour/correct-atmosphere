@@ -157,6 +157,20 @@ RAYLEIGH_TAU_VIIRS: Dict[str, float] = {
     "M7": 0.0163,
 }
 
+#: Unified Rayleigh optical depth by sensor
+RAYLEIGH_OD: Dict[str, Dict[str, float]] = {
+    "SeaWiFS": RAYLEIGH_TAU_SEAWIFS,
+    "seawifs": RAYLEIGH_TAU_SEAWIFS,
+    "MODIS-Aqua": RAYLEIGH_TAU_MODIS,
+    "modis_aqua": RAYLEIGH_TAU_MODIS,
+    "MODIS-Terra": RAYLEIGH_TAU_MODIS,
+    "modis_terra": RAYLEIGH_TAU_MODIS,
+    "VIIRS-NPP": RAYLEIGH_TAU_VIIRS,
+    "viirs_npp": RAYLEIGH_TAU_VIIRS,
+    "VIIRS-NOAA20": RAYLEIGH_TAU_VIIRS,
+    "viirs_noaa20": RAYLEIGH_TAU_VIIRS,
+}
+
 # =============================================================================
 # Gas Absorption Cross Sections (Figure 6.5)
 # =============================================================================
@@ -187,6 +201,34 @@ NO2_CROSS_SECTION_SEAWIFS: Dict[str, float] = {
     "670": 0.008,
     "765": 0.000,
     "865": 0.000,
+}
+
+#: Unified O3 absorption cross sections by sensor
+O3_CROSS_SECTION: Dict[str, Dict[str, float]] = {
+    "SeaWiFS": O3_CROSS_SECTION_SEAWIFS,
+    "seawifs": O3_CROSS_SECTION_SEAWIFS,
+    "MODIS-Aqua": O3_CROSS_SECTION_SEAWIFS,  # Using SeaWiFS as proxy
+    "modis_aqua": O3_CROSS_SECTION_SEAWIFS,
+    "MODIS-Terra": O3_CROSS_SECTION_SEAWIFS,
+    "modis_terra": O3_CROSS_SECTION_SEAWIFS,
+    "VIIRS-NPP": O3_CROSS_SECTION_SEAWIFS,
+    "viirs_npp": O3_CROSS_SECTION_SEAWIFS,
+    "VIIRS-NOAA20": O3_CROSS_SECTION_SEAWIFS,
+    "viirs_noaa20": O3_CROSS_SECTION_SEAWIFS,
+}
+
+#: Unified NO2 absorption cross sections by sensor
+NO2_CROSS_SECTION: Dict[str, Dict[str, float]] = {
+    "SeaWiFS": NO2_CROSS_SECTION_SEAWIFS,
+    "seawifs": NO2_CROSS_SECTION_SEAWIFS,
+    "MODIS-Aqua": NO2_CROSS_SECTION_SEAWIFS,  # Using SeaWiFS as proxy
+    "modis_aqua": NO2_CROSS_SECTION_SEAWIFS,
+    "MODIS-Terra": NO2_CROSS_SECTION_SEAWIFS,
+    "modis_terra": NO2_CROSS_SECTION_SEAWIFS,
+    "VIIRS-NPP": NO2_CROSS_SECTION_SEAWIFS,
+    "viirs_npp": NO2_CROSS_SECTION_SEAWIFS,
+    "VIIRS-NOAA20": NO2_CROSS_SECTION_SEAWIFS,
+    "viirs_noaa20": NO2_CROSS_SECTION_SEAWIFS,
 }
 
 # =============================================================================
@@ -223,6 +265,62 @@ PURE_WATER_BACKSCATTER: Dict[float, float] = {
     765.0: 0.000109,
     862.0: 0.0000734,
     865.0: 0.0000722,
+}
+
+#: Pure water absorption by sensor band [m^-1]
+_PURE_WATER_ABS_SEAWIFS: Dict[str, float] = {
+    "412": 0.00455, "443": 0.00707, "490": 0.0150, "510": 0.0325,
+    "555": 0.0596, "670": 0.439, "765": 2.85, "865": 4.61,
+}
+_PURE_WATER_ABS_MODIS: Dict[str, float] = {
+    "412": 0.00455, "443": 0.00707, "469": 0.0099, "488": 0.0145,
+    "531": 0.0439, "547": 0.0530, "555": 0.0596, "645": 0.325,
+    "667": 0.420, "678": 0.465, "748": 2.47, "869": 4.61,
+}
+_PURE_WATER_ABS_VIIRS: Dict[str, float] = {
+    "M1": 0.00455, "M2": 0.00707, "M3": 0.0145, "M4": 0.0596,
+    "M5": 0.430, "M6": 2.806, "M7": 4.61,
+}
+
+PURE_WATER_ABS: Dict[str, Dict[str, float]] = {
+    "SeaWiFS": _PURE_WATER_ABS_SEAWIFS,
+    "seawifs": _PURE_WATER_ABS_SEAWIFS,
+    "MODIS-Aqua": _PURE_WATER_ABS_MODIS,
+    "modis_aqua": _PURE_WATER_ABS_MODIS,
+    "MODIS-Terra": _PURE_WATER_ABS_MODIS,
+    "modis_terra": _PURE_WATER_ABS_MODIS,
+    "VIIRS-NPP": _PURE_WATER_ABS_VIIRS,
+    "viirs_npp": _PURE_WATER_ABS_VIIRS,
+    "VIIRS-NOAA20": _PURE_WATER_ABS_VIIRS,
+    "viirs_noaa20": _PURE_WATER_ABS_VIIRS,
+}
+
+#: Pure water backscatter by sensor band [m^-1]
+_PURE_WATER_BB_SEAWIFS: Dict[str, float] = {
+    "412": 0.000877, "443": 0.000682, "490": 0.000477, "510": 0.000416,
+    "555": 0.000313, "670": 0.000168, "765": 0.000109, "865": 0.0000722,
+}
+_PURE_WATER_BB_MODIS: Dict[str, float] = {
+    "412": 0.000877, "443": 0.000682, "469": 0.000560, "488": 0.000485,
+    "531": 0.000370, "547": 0.000330, "555": 0.000313, "645": 0.000190,
+    "667": 0.000172, "678": 0.000163, "748": 0.000122, "869": 0.0000722,
+}
+_PURE_WATER_BB_VIIRS: Dict[str, float] = {
+    "M1": 0.000877, "M2": 0.000670, "M3": 0.000485, "M4": 0.000313,
+    "M5": 0.000170, "M6": 0.000119, "M7": 0.0000734,
+}
+
+PURE_WATER_BB: Dict[str, Dict[str, float]] = {
+    "SeaWiFS": _PURE_WATER_BB_SEAWIFS,
+    "seawifs": _PURE_WATER_BB_SEAWIFS,
+    "MODIS-Aqua": _PURE_WATER_BB_MODIS,
+    "modis_aqua": _PURE_WATER_BB_MODIS,
+    "MODIS-Terra": _PURE_WATER_BB_MODIS,
+    "modis_terra": _PURE_WATER_BB_MODIS,
+    "VIIRS-NPP": _PURE_WATER_BB_VIIRS,
+    "viirs_npp": _PURE_WATER_BB_VIIRS,
+    "VIIRS-NOAA20": _PURE_WATER_BB_VIIRS,
+    "viirs_noaa20": _PURE_WATER_BB_VIIRS,
 }
 
 # =============================================================================
