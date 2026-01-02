@@ -141,6 +141,8 @@ RAYLEIGH_TAU_MODIS: Dict[str, float] = {
     "488": 0.1595,
     "531": 0.1143,
     "547": 0.1009,
+    "555": 0.0943,
+    "645": 0.0520,
     "667": 0.0457,
     "678": 0.0430,
     "748": 0.0291,
@@ -203,32 +205,94 @@ NO2_CROSS_SECTION_SEAWIFS: Dict[str, float] = {
     "865": 0.000,
 }
 
+#: Band-averaged O3 absorption cross sections for MODIS [cm^2/molecule]
+#: Values × 10^21 for convenience
+O3_CROSS_SECTION_MODIS: Dict[str, float] = {
+    # Values in cm^2/molecule × 10^-21
+    "412": 0.000,
+    "443": 0.003,
+    "469": 0.009,
+    "488": 0.019,
+    "531": 0.065,
+    "547": 0.087,
+    "555": 0.106,
+    "645": 0.060,
+    "667": 0.050,
+    "678": 0.045,
+    "748": 0.012,
+    "869": 0.000,
+}
+
+#: Band-averaged NO2 absorption cross sections for MODIS [cm^2/molecule]
+#: Values × 10^19 for convenience
+NO2_CROSS_SECTION_MODIS: Dict[str, float] = {
+    # Values in cm^2/molecule × 10^-19
+    "412": 0.600,
+    "443": 0.560,
+    "469": 0.440,
+    "488": 0.340,
+    "531": 0.150,
+    "547": 0.100,
+    "555": 0.075,
+    "645": 0.012,
+    "667": 0.008,
+    "678": 0.006,
+    "748": 0.000,
+    "869": 0.000,
+}
+
+#: Band-averaged O3 absorption cross sections for VIIRS [cm^2/molecule]
+#: Values × 10^21 for convenience
+O3_CROSS_SECTION_VIIRS: Dict[str, float] = {
+    # Values in cm^2/molecule × 10^-21
+    "M1": 0.000,
+    "M2": 0.004,
+    "M3": 0.019,
+    "M4": 0.106,
+    "M5": 0.045,
+    "M6": 0.012,
+    "M7": 0.000,
+}
+
+#: Band-averaged NO2 absorption cross sections for VIIRS [cm^2/molecule]
+#: Values × 10^19 for convenience
+NO2_CROSS_SECTION_VIIRS: Dict[str, float] = {
+    # Values in cm^2/molecule × 10^-19
+    "M1": 0.600,
+    "M2": 0.540,
+    "M3": 0.340,
+    "M4": 0.075,
+    "M5": 0.007,
+    "M6": 0.000,
+    "M7": 0.000,
+}
+
 #: Unified O3 absorption cross sections by sensor
 O3_CROSS_SECTION: Dict[str, Dict[str, float]] = {
     "SeaWiFS": O3_CROSS_SECTION_SEAWIFS,
     "seawifs": O3_CROSS_SECTION_SEAWIFS,
-    "MODIS-Aqua": O3_CROSS_SECTION_SEAWIFS,  # Using SeaWiFS as proxy
-    "modis_aqua": O3_CROSS_SECTION_SEAWIFS,
-    "MODIS-Terra": O3_CROSS_SECTION_SEAWIFS,
-    "modis_terra": O3_CROSS_SECTION_SEAWIFS,
-    "VIIRS-NPP": O3_CROSS_SECTION_SEAWIFS,
-    "viirs_npp": O3_CROSS_SECTION_SEAWIFS,
-    "VIIRS-NOAA20": O3_CROSS_SECTION_SEAWIFS,
-    "viirs_noaa20": O3_CROSS_SECTION_SEAWIFS,
+    "MODIS-Aqua": O3_CROSS_SECTION_MODIS,
+    "modis_aqua": O3_CROSS_SECTION_MODIS,
+    "MODIS-Terra": O3_CROSS_SECTION_MODIS,
+    "modis_terra": O3_CROSS_SECTION_MODIS,
+    "VIIRS-NPP": O3_CROSS_SECTION_VIIRS,
+    "viirs_npp": O3_CROSS_SECTION_VIIRS,
+    "VIIRS-NOAA20": O3_CROSS_SECTION_VIIRS,
+    "viirs_noaa20": O3_CROSS_SECTION_VIIRS,
 }
 
 #: Unified NO2 absorption cross sections by sensor
 NO2_CROSS_SECTION: Dict[str, Dict[str, float]] = {
     "SeaWiFS": NO2_CROSS_SECTION_SEAWIFS,
     "seawifs": NO2_CROSS_SECTION_SEAWIFS,
-    "MODIS-Aqua": NO2_CROSS_SECTION_SEAWIFS,  # Using SeaWiFS as proxy
-    "modis_aqua": NO2_CROSS_SECTION_SEAWIFS,
-    "MODIS-Terra": NO2_CROSS_SECTION_SEAWIFS,
-    "modis_terra": NO2_CROSS_SECTION_SEAWIFS,
-    "VIIRS-NPP": NO2_CROSS_SECTION_SEAWIFS,
-    "viirs_npp": NO2_CROSS_SECTION_SEAWIFS,
-    "VIIRS-NOAA20": NO2_CROSS_SECTION_SEAWIFS,
-    "viirs_noaa20": NO2_CROSS_SECTION_SEAWIFS,
+    "MODIS-Aqua": NO2_CROSS_SECTION_MODIS,
+    "modis_aqua": NO2_CROSS_SECTION_MODIS,
+    "MODIS-Terra": NO2_CROSS_SECTION_MODIS,
+    "modis_terra": NO2_CROSS_SECTION_MODIS,
+    "VIIRS-NPP": NO2_CROSS_SECTION_VIIRS,
+    "viirs_npp": NO2_CROSS_SECTION_VIIRS,
+    "VIIRS-NOAA20": NO2_CROSS_SECTION_VIIRS,
+    "viirs_noaa20": NO2_CROSS_SECTION_VIIRS,
 }
 
 # =============================================================================
