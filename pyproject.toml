@@ -32,6 +32,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Atmospheric Science",
     "Topic :: Scientific/Engineering :: GIS",
 ]
@@ -64,12 +65,12 @@ Repository = "https://github.com/yourusername/correct_atmosphere"
 where = ["."]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["correct_atmosphere/tests"]
 addopts = "-v --cov=correct_atmosphere --cov-report=term-missing"
 
 [tool.black]
 line-length = 88
-target-version = ["py39", "py310", "py311", "py312"]
+target-version = ["py39", "py310", "py311", "py312", "py313"]
 
 [tool.ruff]
 line-length = 88
