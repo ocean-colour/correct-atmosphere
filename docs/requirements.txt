@@ -1,0 +1,13 @@
+# Documentation dependencies for Read the Docs
+# These are installed when building documentation on RTD
+
+# Sphinx and theme
+sphinx>=4.0.0
+sphinx-rtd-theme>=1.0.0
+
+# Sphinx extensions
+numpydoc>=1.2.0
+
+# Required for building the package and autodoc
+numpy>=1.21.0
+scipy>=1.7.0
