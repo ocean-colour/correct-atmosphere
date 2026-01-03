@@ -22,6 +22,7 @@ This package implements the algorithms documented in:
    quickstart
    tutorials
    theory
+   downwelling
    api
    examples
 
@@ -59,6 +60,7 @@ The package includes the following modules:
 * **normalization** - BRDF correction, Earth-Sun distance, Rrs computation (Section 3)
 * **polarization** - Stokes vectors and sensor polarization correction (Section 11)
 * **outofband** - Out-of-band spectral response correction (Section 10)
+* **downwelling** - Downwelling irradiance Ed(0+) using TSIS-1 HSRS solar spectrum
 * **correction** - Main ``AtmosphericCorrection`` class integrating all components
 
 Installation
