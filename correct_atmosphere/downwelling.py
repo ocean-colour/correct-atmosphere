@@ -8,8 +8,10 @@ the sea surface, which is essential for computing remote-sensing reflectance:
 
 Key features:
 
-- High-resolution (1 nm) extraterrestrial solar irradiance F0 from
-  Coddington et al. (2021) TSIS-1 HSRS
+- High-resolution (0.1 nm) extraterrestrial solar irradiance F0 from the
+  TSIS-1 Hybrid Solar Reference Spectrum (HSRS) v2 (Coddington et al. 2021)
+- Solar spectrum data loaded from official NetCDF file (202-2730 nm range)
+- Includes measurement uncertainty from the TSIS-1 SIM instrument
 - Direct and diffuse irradiance components
 - Atmospheric transmittance including Rayleigh, aerosol, and gas absorption
 - Support for hyperspectral sensors (PACE OCI: 340-890 nm at 5 nm resolution)
@@ -17,6 +19,14 @@ Key features:
 The Ed calculation follows NASA ocean color processing conventions and
 is designed for compatibility with PACE (Plankton, Aerosol, Cloud, ocean
 Ecosystem) mission data.
+
+Data Requirements
+-----------------
+The TSIS-1 HSRS data file must be present at:
+    correct_atmosphere/data/Solar/hybrid_reference_spectrum_1nm_resolution_c2022-11-30_with_unc.nc
+
+This file can be downloaded from:
+    https://lasp.colorado.edu/lisird/data/tsis1_hsrs
 
 References
 ----------
@@ -65,18 +75,35 @@ class SolarSpectrum:
     """
     Container for solar irradiance spectrum data.
 
+    This class holds extraterrestrial solar irradiance (F0) data and provides
+    methods for interpolation and unit conversion. When loaded from TSIS-1 HSRS,
+    measurement uncertainty is also available.
+
     Attributes
     ----------
     wavelengths : ndarray
-        Wavelengths in nm.
+        Wavelengths in nm (vacuum wavelengths for TSIS-1 HSRS).
     f0 : ndarray
         Extraterrestrial solar irradiance F0 in mW cm^-2 um^-1.
+        This is the mean solar distance value; use Earth-Sun distance
+        correction for actual values on a specific day.
     source : str
-        Data source identifier.
+        Data source identifier (e.g., "TSIS-1 HSRS v2 (Coddington et al. 2021)").
     resolution : float
-        Spectral resolution in nm.
+        Nominal spectral resolution in nm.
     uncertainty : ndarray, optional
-        Uncertainty in F0 (same units as F0).
+        Measurement uncertainty in F0 (same units as F0).
+        Available for TSIS-1 HSRS data.
+
+    Examples
+    --------
+    >>> spectrum = get_solar_spectrum(wavelength_range=(400, 700))
+    >>> f0_550 = spectrum.interpolate(550.0)
+    >>> print(f"F0 at 550 nm: {f0_550:.2f} mW cm^-2 um^-1")
+
+    >>> # Convert to SI units
+    >>> spectrum_si = spectrum.to_si_units()
+    >>> print(f"F0 at 550 nm: {spectrum_si.interpolate(550.0):.4f} W m^-2 nm^-1")
     """
 
     wavelengths: np.ndarray
@@ -137,20 +164,47 @@ def _load_tsis1_hsrs(
     """
     Load TSIS-1 Hybrid Solar Reference Spectrum from NetCDF file.
 
+    Loads the official TSIS-1 HSRS v2 data from the NetCDF file distributed
+    by LASP (Laboratory for Atmospheric and Space Physics). The spectrum
+    covers 202-2730 nm at 0.1 nm resolution (25,281 data points).
+
+    The data includes:
+    - Solar Spectral Irradiance (SSI) in W m^-2 nm^-1
+    - Measurement uncertainty (SSI_UNC)
+    - Vacuum wavelengths
+
+    Values are converted to ocean color standard units (mW cm^-2 um^-1).
+
     Parameters
     ----------
     wavelength_range : tuple of float, optional
-        (min_wavelength, max_wavelength) to subset the spectrum.
+        (min_wavelength, max_wavelength) in nm to subset the spectrum.
+        If None, the full 202-2730 nm range is returned.
 
     Returns
     -------
     SolarSpectrum
-        Solar spectrum object with wavelengths and F0 values.
+        Solar spectrum object containing:
+        - wavelengths: array of wavelengths in nm
+        - f0: extraterrestrial solar irradiance in mW cm^-2 um^-1
+        - uncertainty: measurement uncertainty in mW cm^-2 um^-1
+        - source: data provenance string
+        - resolution: nominal spectral resolution (1.0 nm)
 
     Raises
     ------
     FileNotFoundError
-        If the TSIS-1 HSRS data file is not found.
+        If the TSIS-1 HSRS data file is not found at the expected location.
+
+    Notes
+    -----
+    Typical F0 values at ocean color wavelengths (mW cm^-2 um^-1):
+    - 412 nm: ~187
+    - 443 nm: ~197
+    - 490 nm: ~208
+    - 555 nm: ~193
+    - 670 nm: ~153
+    - 865 nm: ~96
     """
     import xarray as xr
 
@@ -251,33 +305,45 @@ def get_solar_spectrum(
     ----------
     source : str, optional
         Solar spectrum source. Options:
-        - "TSIS1_HSRS": TSIS-1 Hybrid Solar Reference Spectrum (default)
+        - "TSIS1_HSRS": TSIS-1 Hybrid Solar Reference Spectrum v2 (default)
+          Loaded from NetCDF file, covers 202-2730 nm at 0.1 nm resolution.
         - "Thuillier2003": Thuillier et al. (2003) spectrum
+          Hardcoded values, covers 380-875 nm at 5 nm resolution.
     wavelength_range : tuple of float, optional
-        (min_wavelength, max_wavelength) to subset the spectrum.
+        (min_wavelength, max_wavelength) in nm to subset the spectrum.
+        If None, returns the full wavelength range of the source.
 
     Returns
     -------
     SolarSpectrum
-        Solar spectrum object with wavelengths and F0 values.
+        Solar spectrum object with wavelengths, F0 values (mW cm^-2 um^-1),
+        and uncertainty (for TSIS-1 HSRS). Results are cached for efficiency.
 
     Notes
     -----
-    The TSIS-1 HSRS is the current NASA standard for ocean color processing.
-    It provides F0 at 1 nm resolution from 202-2730 nm based on measurements
-    from the TSIS-1 Spectral Irradiance Monitor (SIM) instrument.
+    The TSIS-1 HSRS v2 is the current NASA standard for ocean color processing.
+    It provides F0 at 0.1 nm resolution from 202-2730 nm based on measurements
+    from the TSIS-1 Spectral Irradiance Monitor (SIM) instrument, combined with
+    ground-based and model data for wavelengths outside the SIM range.
 
-    The data file should be located at:
-    correct_atmosphere/data/Solar/hybrid_reference_spectrum_1nm_resolution_c2022-11-30_with_unc.nc
+    The TSIS-1 HSRS data file must be present at:
+        correct_atmosphere/data/Solar/hybrid_reference_spectrum_1nm_resolution_c2022-11-30_with_unc.nc
 
-    For PACE OCI hyperspectral processing, the native resolution of 5 nm
-    requires interpolation from the 1 nm reference spectrum.
+    Download from: https://lasp.colorado.edu/lisird/data/tsis1_hsrs
+
+    For PACE OCI hyperspectral processing (340-890 nm at 5 nm resolution),
+    use the ``interpolate()`` method to resample to sensor wavelengths.
 
     Examples
     --------
     >>> spectrum = get_solar_spectrum()
     >>> f0_443 = spectrum.interpolate(443.0)
     >>> print(f"F0 at 443 nm: {f0_443:.2f} mW cm^-2 um^-1")
+    F0 at 443 nm: 197.17 mW cm^-2 um^-1
+
+    >>> # Get spectrum for visible range only
+    >>> vis_spectrum = get_solar_spectrum(wavelength_range=(400, 700))
+    >>> print(f"Visible range: {vis_spectrum.wavelengths[0]}-{vis_spectrum.wavelengths[-1]} nm")
     """
     # Create cache key
     cache_key = f"{source}_{wavelength_range}"
