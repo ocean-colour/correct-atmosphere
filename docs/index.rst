@@ -20,6 +20,7 @@ This package implements the algorithms documented in:
 
    installation
    quickstart
+   tutorials
    theory
    api
    examples
@@ -29,6 +30,7 @@ Quick Links
 
 * :ref:`Installation <installation>`
 * :ref:`Quick Start Guide <quickstart>`
+* :doc:`Tutorials (Jupyter Notebooks) <tutorials>`
 * :ref:`API Reference <api>`
 * :doc:`Theory and Background <theory>`
 
