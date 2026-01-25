@@ -24,7 +24,7 @@ setup_keywords['install_requires'] = [
     'scikit-learn', 'scikit-image', 'tqdm', 
     'healpy', 'cftime', 'bokeh', 'umap-learn', 'llvmlite', 'boto3',
     'xarray', 'h5netcdf', 'emcee', 'corner',
-    'importlib-metadata', 'timm==0.3.2', 'IPython',
+    'importlib-metadata', 'timm==1.0.24', 'IPython',
     'scikit-learn', 'scikit-image', 'tqdm',
     'pysolar']
 setup_keywords['extras_require'] = {
