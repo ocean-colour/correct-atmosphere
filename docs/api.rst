@@ -102,3 +102,11 @@ Out-of-Band Correction
    :members:
    :undoc-members:
    :show-inheritance:
+
+Downwelling Irradiance
+======================
+
+.. automodule:: correct_atmosphere.downwelling
+   :members:
+   :undoc-members:
+   :show-inheritance:
