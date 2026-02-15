@@ -222,6 +222,72 @@ def pressure_correction_coefficient(
     return C
 
 
+def rayleigh_reflectance_single_scatter(
+    wavelength: Union[float, np.ndarray],
+    solar_zenith: Union[float, np.ndarray],
+    view_zenith: Union[float, np.ndarray],
+    relative_azimuth: Union[float, np.ndarray],
+    pressure: float = STANDARD_PRESSURE,
+) -> Union[float, np.ndarray]:
+    """
+    Compute single-scattering Rayleigh reflectance analytically.
+
+    This provides a first-order approximation when precomputed LUTs
+    (which include multiple scattering and polarization) are unavailable.
+
+    Parameters
+    ----------
+    wavelength : float or array_like
+        Wavelength in nanometers.
+    solar_zenith : float or array_like
+        Solar zenith angle in degrees.
+    view_zenith : float or array_like
+        Viewing zenith angle in degrees.
+    relative_azimuth : float or array_like
+        Relative azimuth angle in degrees.
+    pressure : float, optional
+        Sea level pressure in hPa (default: 1013.25).
+
+    Returns
+    -------
+    float or ndarray
+        Rayleigh reflectance (dimensionless).
+
+    Notes
+    -----
+    Uses the single-scattering approximation:
+
+    .. math::
+
+        \\rho_r = \\frac{\\tau_r \\, P(\\Theta)}
+                       {4 \\cos\\theta_s \\cos\\theta_v}
+
+    where P is the Rayleigh phase function corrected for depolarization.
+    """
+    theta_s = np.deg2rad(np.asarray(solar_zenith, dtype=float))
+    theta_v = np.deg2rad(np.asarray(view_zenith, dtype=float))
+    phi = np.deg2rad(np.asarray(relative_azimuth, dtype=float))
+
+    # Scattering angle
+    cos_scatter = (
+        -np.cos(theta_s) * np.cos(theta_v)
+        + np.sin(theta_s) * np.sin(theta_v) * np.cos(phi)
+    )
+
+    # Rayleigh phase function with depolarization correction
+    delta = rayleigh_depolarization_ratio(wavelength)
+    gamma = delta / (2.0 - delta)
+    phase = (3.0 / (4.0 * (1.0 + 2.0 * gamma))) * (
+        (1.0 + 3.0 * gamma) + (1.0 - gamma) * cos_scatter ** 2
+    )
+
+    tau_r = rayleigh_optical_thickness(wavelength, pressure)
+
+    rho_r = tau_r * phase / (4.0 * np.cos(theta_s) * np.cos(theta_v))
+
+    return rho_r
+
+
 def rayleigh_reflectance_pressure_corrected(
     rayleigh_reflectance_std: Union[float, np.ndarray],
     wavelength: Union[float, np.ndarray],

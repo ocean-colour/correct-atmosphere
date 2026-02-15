@@ -434,10 +434,14 @@ def gas_transmittance(
     >>> t_gas = gas_transmittance(443.0, 30.0, 15.0)
     >>> print(f"Gas transmittance at 443 nm: {t_gas:.4f}")
     """
-    transmittance = np.ones_like(np.asarray(wavelength), dtype=float)
+    # Determine output shape from broadcast of all array inputs
+    broadcast_shape = np.broadcast_shapes(
+        np.shape(wavelength), np.shape(solar_zenith), np.shape(view_zenith)
+    )
+    transmittance = np.ones(broadcast_shape, dtype=float)
 
     if include_o3:
-        transmittance *= ozone_transmittance(
+        transmittance = transmittance * ozone_transmittance(
             wavelength, o3_concentration, solar_zenith, view_zenith
         )
 
@@ -445,6 +449,6 @@ def gas_transmittance(
         # Simple NO2 transmittance (not the full correction algorithm)
         tau_no2 = no2_optical_thickness(wavelength, no2_concentration)
         M = geometric_air_mass_factor(solar_zenith, view_zenith)
-        transmittance *= np.exp(-tau_no2 * M)
+        transmittance = transmittance * np.exp(-tau_no2 * M)
 
     return transmittance

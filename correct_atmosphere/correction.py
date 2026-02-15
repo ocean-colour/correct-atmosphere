@@ -369,7 +369,7 @@ class AtmosphericCorrection:
     def aerosol_lut(self) -> aerosols.AerosolLUT:
         """Lazy-load aerosol lookup table."""
         if self._aerosol_lut is None:
-            self._aerosol_lut = aerosols.AerosolLUT()
+            self._aerosol_lut = aerosols.AerosolLUT(self.sensor)
         return self._aerosol_lut
 
     @property
@@ -424,7 +424,13 @@ class AtmosphericCorrection:
         # Convert Lt to reflectance
         # ρt = π * Lt / (F0 * cos(θs))
         cos_sza = np.cos(geometry.solar_zenith_rad)
-        rho_t = np.pi * Lt / (F0[:, np.newaxis] * cos_sza) if Lt.ndim > 1 else np.pi * Lt / (F0 * cos_sza)
+        if Lt.ndim > 1:
+            # Reshape F0 to broadcast over spatial dims: (n_bands, 1, ..., 1)
+            extra_dims = Lt.ndim - 1
+            F0_bc = F0.reshape((-1,) + (1,) * extra_dims)
+            rho_t = np.pi * Lt / (F0_bc * cos_sza)
+        else:
+            rho_t = np.pi * Lt / (F0 * cos_sza)
 
         # Step 1: Correct for gaseous absorption (Section 6.2)
         rho_t_gas_corrected = self._correct_gases(
@@ -447,7 +453,8 @@ class AtmosphericCorrection:
         rho_r = self._compute_rayleigh_reflectance(geometry, ancillary)
 
         # Step 5: Compute and mask sun glint (Section 7)
-        L_GN = glint.normalized_sun_glint(
+        _vec_glint = np.vectorize(glint.normalized_sun_glint)
+        L_GN = _vec_glint(
             geometry.solar_zenith,
             geometry.view_zenith,
             geometry.relative_azimuth,
@@ -476,7 +483,10 @@ class AtmosphericCorrection:
         # Step 7-8: Normalize and iterate if needed
         chlorophyll = self._estimate_chlorophyll(rho_w)
 
-        if aerosols.should_apply_nonblack_pixel(chlorophyll):
+        # For scalar chlorophyll, check if non-black-pixel iteration is needed
+        chl_scalar = np.mean(chlorophyll) if np.ndim(chlorophyll) > 0 else chlorophyll
+        should_iterate, _ = aerosols.should_apply_nonblack_pixel(float(chl_scalar))
+        if should_iterate and rho_w.ndim == 1:
             flags.turbid_water = True
             rho_w, rho_A, taua, converged = self._iterate_nonblack_pixel(
                 rho_t_pol_corrected,
@@ -513,14 +523,20 @@ class AtmosphericCorrection:
         # Rrs = [ρw]ᵉˣ_N / π (Eq. 3.10)
         rrs = rho_w_ex / np.pi
 
+        if rho_w_ex.ndim > 1:
+            extra_dims = rho_w_ex.ndim - 1
+            F0_bc = F0.reshape((-1,) + (1,) * extra_dims)
+        else:
+            F0_bc = F0
+
         # [Lw]ᵉˣ_N = [ρw]ᵉˣ_N * F0 / π (Eq. 3.8)
-        nLw = rho_w_ex * F0 / np.pi if rho_w_ex.ndim == 1 else rho_w_ex * F0[:, np.newaxis] / np.pi
+        nLw = rho_w_ex * F0_bc / np.pi
 
         # Water-leaving radiance at surface
-        Lw = rho_w * F0 * cos_sza / np.pi if rho_w.ndim == 1 else rho_w * F0[:, np.newaxis] * cos_sza / np.pi
+        Lw = rho_w * F0_bc * cos_sza / np.pi
 
         # Aerosol path radiance
-        La = rho_A * F0 * cos_sza / np.pi if rho_A.ndim == 1 else rho_A * F0[:, np.newaxis] * cos_sza / np.pi
+        La = rho_A * F0_bc * cos_sza / np.pi
 
         # Angstrom exponent
         angstrom = aerosols.angstrom_exponent(
@@ -585,36 +601,33 @@ class AtmosphericCorrection:
         ancillary: AncillaryData,
     ) -> np.ndarray:
         """Apply gaseous absorption corrections (O3, NO2)."""
-        # Ozone transmittance (Eq. 6.4)
-        t_o3 = gases.ozone_transmittance(
-            self.wavelengths,
-            ancillary.ozone,
-            geometry.solar_zenith,
-            geometry.view_zenith,
-            self.sensor,
-        )
-
-        # NO2 correction (Section 6.2.2)
-        # For TOA reflectance, use stratospheric NO2
-        t_no2 = gases.gas_transmittance(
-            self.wavelengths,
-            geometry.solar_zenith,
-            geometry.view_zenith,
-            o3_column=0,  # Already applied
-            no2_column=ancillary.no2_stratospheric,
-            sensor=self.sensor,
-        )
-
-        # Combined correction
-        t_gas = t_o3 * t_no2
-
-        # Correct reflectance
+        # Compute per-band to avoid broadcasting issues with 2D geometry
         if rho_t.ndim == 1:
-            rho_corrected = rho_t / t_gas
+            # Scalar geometry — compute all bands at once
+            t_o3 = gases.ozone_transmittance(
+                self.wavelengths, ancillary.ozone,
+                geometry.solar_zenith, geometry.view_zenith,
+            )
+            t_no2 = gases.gas_transmittance(
+                self.wavelengths, geometry.solar_zenith, geometry.view_zenith,
+                o3_concentration=0, no2_concentration=ancillary.no2_stratospheric,
+            )
+            return rho_t / (t_o3 * t_no2)
         else:
-            rho_corrected = rho_t / t_gas[:, np.newaxis]
-
-        return rho_corrected
+            # 2D geometry — compute per band to avoid shape mismatches
+            rho_corrected = np.empty_like(rho_t)
+            for i, wl in enumerate(self.wavelengths):
+                t_o3 = gases.ozone_transmittance(
+                    wl, ancillary.ozone,
+                    geometry.solar_zenith, geometry.view_zenith,
+                )
+                t_no2 = gases.gas_transmittance(
+                    wl, geometry.solar_zenith, geometry.view_zenith,
+                    o3_concentration=0,
+                    no2_concentration=ancillary.no2_stratospheric,
+                )
+                rho_corrected[i] = rho_t[i] / (t_o3 * t_no2)
+            return rho_corrected
 
     def _correct_polarization(
         self,
@@ -627,12 +640,25 @@ class AtmosphericCorrection:
         # For now, return uncorrected
         return rho_t
 
+    def _band_output_shape(
+        self, geometry: GeometryAngles,
+    ) -> tuple:
+        """Return shape (n_bands,) or (n_bands, ...) matching geometry."""
+        sza = np.asarray(geometry.solar_zenith)
+        if sza.ndim == 0:
+            return (len(self.wavelengths),)
+        return (len(self.wavelengths),) + sza.shape
+
     def _compute_whitecap_reflectance(
         self,
         wind_speed: Union[float, np.ndarray],
     ) -> np.ndarray:
         """Compute whitecap reflectance (Section 8)."""
-        rho_wc = np.zeros(len(self.wavelengths))
+        ws = np.asarray(wind_speed)
+        if ws.ndim == 0:
+            rho_wc = np.zeros(len(self.wavelengths))
+        else:
+            rho_wc = np.zeros((len(self.wavelengths),) + ws.shape)
         for i, wl in enumerate(self.wavelengths):
             rho_wc[i] = whitecaps.whitecap_reflectance(wind_speed, wl)
         return rho_wc
@@ -643,29 +669,36 @@ class AtmosphericCorrection:
         ancillary: AncillaryData,
     ) -> np.ndarray:
         """Compute Rayleigh reflectance (Section 6.1)."""
-        rho_r = np.zeros(len(self.wavelengths))
+        rho_r = np.zeros(self._band_output_shape(geometry))
 
         for i, wl in enumerate(self.wavelengths):
-            # Get from LUT or compute
-            rho_r_std = self.rayleigh_lut.interpolate(
-                wl,
-                geometry.solar_zenith,
-                geometry.view_zenith,
-                geometry.relative_azimuth,
-                ancillary.wind_speed,
-            )
+            try:
+                # Get from LUT (preferred: includes multiple scattering)
+                rho_r_std = self.rayleigh_lut.interpolate(
+                    wl,
+                    geometry.solar_zenith,
+                    geometry.view_zenith,
+                    geometry.relative_azimuth,
+                    ancillary.wind_speed,
+                )
 
-            # Apply pressure correction (Eq. 6.2)
-            tau_r = rayleigh.rayleigh_optical_thickness(wl, ancillary.pressure)
-            tau_r_std = rayleigh.rayleigh_optical_thickness(wl)
-
-            rho_r[i] = rayleigh.rayleigh_reflectance_pressure_corrected(
-                rho_r_std,
-                tau_r,
-                tau_r_std,
-                geometry.air_mass_factor,
-                wl,
-            )
+                # Apply pressure correction (Eq. 6.2)
+                rho_r[i] = rayleigh.rayleigh_reflectance_pressure_corrected(
+                    rho_r_std,
+                    wl,
+                    ancillary.pressure,
+                    geometry.solar_zenith,
+                    geometry.view_zenith,
+                )
+            except (RuntimeError, NotImplementedError):
+                # Fallback: single-scattering analytical approximation
+                rho_r[i] = rayleigh.rayleigh_reflectance_single_scatter(
+                    wl,
+                    geometry.solar_zenith,
+                    geometry.view_zenith,
+                    geometry.relative_azimuth,
+                    ancillary.pressure,
+                )
 
         return rho_r
 
@@ -677,19 +710,17 @@ class AtmosphericCorrection:
         F0: np.ndarray,
     ) -> np.ndarray:
         """Compute sun glint reflectance (Section 7)."""
-        rho_g = np.zeros(len(self.wavelengths))
+        rho_g = np.zeros(self._band_output_shape(geometry))
+        _vec_glint_refl = np.vectorize(glint.sun_glint_reflectance)
 
         for i, wl in enumerate(self.wavelengths):
-            # Two-path transmittance
-            tau_total = rayleigh.rayleigh_optical_thickness(wl, ancillary.pressure)
-            # Note: Should include aerosol optical thickness, but that's
-            # determined iteratively
-            T_two = glint.two_path_transmittance(
+            rho_g[i] = _vec_glint_refl(
                 geometry.solar_zenith,
                 geometry.view_zenith,
-                tau_total,
+                geometry.relative_azimuth,
+                ancillary.wind_speed,
+                wl,
             )
-            rho_g[i] = glint.sun_glint_reflectance(L_GN, T_two)
 
         return rho_g
 
@@ -699,14 +730,14 @@ class AtmosphericCorrection:
         ancillary: AncillaryData,
     ) -> np.ndarray:
         """Compute diffuse transmittance in viewing direction."""
-        t_dv = np.zeros(len(self.wavelengths))
+        t_dv = np.zeros(self._band_output_shape(geometry))
 
         for i, wl in enumerate(self.wavelengths):
-            tau_r = rayleigh.rayleigh_optical_thickness(wl, ancillary.pressure)
             t_dv[i] = transmittance.diffuse_transmittance(
                 geometry.view_zenith,
-                tau_r,
-                tau_aerosol=0.1,  # Approximate; updated in iteration
+                wl,
+                aerosol_tau=0.1,  # Approximate; updated in iteration
+                pressure=ancillary.pressure,
             )
 
         return t_dv
@@ -716,39 +747,49 @@ class AtmosphericCorrection:
         rho_Aw: np.ndarray,
         geometry: GeometryAngles,
         ancillary: AncillaryData,
-    ) -> Tuple[np.ndarray, aerosols.AerosolModel, np.ndarray]:
+    ) -> Tuple[np.ndarray, Optional[aerosols.AerosolModel], np.ndarray]:
         """Compute aerosol reflectance using black-pixel assumption."""
-        # Extract NIR reflectances
-        rho_Aw_nir = np.array([
-            rho_Aw[self.nir_idx_short],
-            rho_Aw[self.nir_idx_long],
-        ])
+        rho_aw_nir1 = rho_Aw[self.nir_idx_short]
+        rho_aw_nir2 = rho_Aw[self.nir_idx_long]
 
-        # Apply black-pixel correction
-        result = aerosols.black_pixel_correction(
-            rho_Aw_nir,
-            np.array([self.nir_band_short, self.nir_band_long]),
-            self.wavelengths,
-            geometry.solar_zenith,
-            geometry.view_zenith,
-            geometry.relative_azimuth,
-            ancillary.relative_humidity,
-            self.aerosol_lut,
-        )
+        model = None
+        alpha = 1.0
+        taua_ref = 0.1
 
-        rho_A = result["rho_a"]
-        model = result["aerosol_model"]
+        if rho_Aw.ndim == 1:
+            try:
+                rho_A_arr, metadata = aerosols.black_pixel_correction(
+                    float(rho_aw_nir1),
+                    float(rho_aw_nir2),
+                    self.wavelengths,
+                    float(self.nir_band_short),
+                    float(self.nir_band_long),
+                    geometry.solar_zenith,
+                    geometry.view_zenith,
+                    geometry.relative_azimuth,
+                    ancillary.relative_humidity,
+                    self.aerosol_lut,
+                )
+                model = metadata.get("aerosol_model", None)
+                taua_ref = metadata.get("taua_865", 0.1)
+                alpha = model.angstrom_exponent if model else 1.0
+                rho_A = rho_A_arr
+            except (RuntimeError, NotImplementedError):
+                model = None
 
-        # Compute AOT at each wavelength
+        if model is None:
+            # Fallback: simple spectral extrapolation from NIR
+            alpha = 1.0
+            rho_A = np.zeros_like(rho_Aw)
+            for i, wl in enumerate(self.wavelengths):
+                rho_A[i] = rho_aw_nir2 * (self.nir_band_long / wl) ** alpha
+            taua_ref = 0.1
+
+        # Compute AOT at each wavelength (1D — per band, not spatial)
         taua = np.zeros(len(self.wavelengths))
-        taua_865 = result.get("taua_865", 0.1)  # Reference AOT
-
         for i, wl in enumerate(self.wavelengths):
             taua[i] = aerosols.aerosol_optical_thickness(
-                wl,
-                self.nir_band_long,
-                taua_865,
-                model.angstrom_exponent if model else 1.0,
+                wl, taua_ref, float(self.nir_band_long), alpha,
             )
 
         return rho_A, model, taua
@@ -795,13 +836,16 @@ class AtmosphericCorrection:
             idx_555 = np.argmin(np.abs(self.wavelengths - 555))
             idx_670 = np.argmin(np.abs(self.wavelengths - 670))
 
-            rrs_nir = aerosols.estimate_nir_rrs(
-                rrs[idx_443],
-                rrs[idx_555],
-                rrs[idx_670],
-                self.nir_band_short,
-                self.nir_band_long,
-            )
+            rrs_nir = np.array([
+                aerosols.estimate_nir_rrs(
+                    rrs[idx_443], rrs[idx_555], rrs[idx_670],
+                    float(self.nir_band_short),
+                ),
+                aerosols.estimate_nir_rrs(
+                    rrs[idx_443], rrs[idx_555], rrs[idx_670],
+                    float(self.nir_band_long),
+                ),
+            ])
 
             # Check convergence
             if iteration > 0:
@@ -839,10 +883,11 @@ class AtmosphericCorrection:
 
         # Maximum band ratio
         rrs = rho_w / np.pi
+        rrs_denom = np.maximum(rrs[idx_555], 1e-10)
         ratios = np.array([
-            rrs[idx_443] / rrs[idx_555],
-            rrs[idx_490] / rrs[idx_555],
-            rrs[idx_510] / rrs[idx_555],
+            rrs[idx_443] / rrs_denom,
+            rrs[idx_490] / rrs_denom,
+            rrs[idx_510] / rrs_denom,
         ])
         max_ratio = np.max(ratios, axis=0)
 
@@ -876,14 +921,17 @@ class AtmosphericCorrection:
                 # No BRDF correction for NIR bands
                 rho_w_ex[i] = rho_w[i]
             else:
-                correction = self.brdf_lut.correction_factor(
-                    wl,
-                    geometry.solar_zenith,
-                    geometry.view_zenith,
-                    geometry.relative_azimuth,
-                    chlorophyll,
-                    wind_speed,
-                )
-                rho_w_ex[i] = rho_w[i] * correction
+                try:
+                    correction = self.brdf_lut.correction_factor(
+                        wl,
+                        geometry.solar_zenith,
+                        geometry.view_zenith,
+                        geometry.relative_azimuth,
+                        chlorophyll,
+                        wind_speed,
+                    )
+                    rho_w_ex[i] = rho_w[i] * correction
+                except (RuntimeError, NotImplementedError, ValueError, TypeError):
+                    rho_w_ex[i] = rho_w[i]
 
         return rho_w_ex

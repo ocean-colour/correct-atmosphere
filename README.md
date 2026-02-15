@@ -60,7 +60,7 @@ t_o3 = ozone_transmittance(443.0, 350.0, 30.0, 15.0)
 
 ## Requirements
 
-- Python >= 3.9
+- Python >= 3.11
 - NumPy, SciPy
 - xarray, netCDF4
 

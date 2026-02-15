@@ -1,0 +1,53 @@
+{
+  "wavelengths_nm": [
+    412,
+    443,
+    488,
+    531,
+    547,
+    667,
+    678,
+    748,
+    869
+  ],
+  "toa_reflectance": [
+    0.141047,
+    0.108579,
+    0.0797077,
+    0.0585065,
+    0.0530209,
+    0.0299642,
+    0.0289441,
+    0.0239661,
+    0.0196369
+  ],
+  "true_rho_w": [
+    0.0409297,
+    0.0277038,
+    0.0211561,
+    0.0103973,
+    0.0082987,
+    0.000653827,
+    0.000593247,
+    7.89178e-05,
+    3.69144e-05
+  ],
+  "geometry": {
+    "solar_zenith": 30.0,
+    "solar_azimuth": 0.0,
+    "view_zenith": 15.0,
+    "view_azimuth": 90.0
+  },
+  "ancillary": {
+    "pressure": 1013.25,
+    "wind_speed": 5.0,
+    "ozone": 300.0,
+    "water_vapor": 1.5,
+    "relative_humidity": 80.0
+  },
+  "scenario": {
+    "name": "Open Ocean - Moderate",
+    "chlorophyll": 0.3,
+    "aot_550": 0.1
+  }
+}
