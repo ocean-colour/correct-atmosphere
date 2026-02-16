@@ -1,0 +1,148 @@
+{
+  "wavelengths_nm": [
+    412,
+    443,
+    469,
+    488,
+    531,
+    547,
+    667,
+    678,
+    748,
+    869
+  ],
+  "toa_reflectance": [
+    0.141047,
+    0.108579,
+    0.0905563,
+    0.0797077,
+    0.0585065,
+    0.0530209,
+    0.0299642,
+    0.0289441,
+    0.0239661,
+    0.0196369
+  ],
+  "true_rho_w": [
+    0.0409297,
+    0.0277038,
+    0.0240733,
+    0.0211561,
+    0.0103973,
+    0.0082987,
+    0.000653827,
+    0.000593247,
+    7.89178e-05,
+    3.69144e-05
+  ],
+  "geometry": {
+    "solar_zenith": 30.0,
+    "solar_azimuth": 0.0,
+    "view_zenith": 15.0,
+    "view_azimuth": 90.0
+  },
+  "ancillary": {
+    "pressure": 1013.25,
+    "wind_speed": 5.0,
+    "ozone": 300.0,
+    "water_vapor": 1.5,
+    "relative_humidity": 80.0
+  },
+  "scenario": {
+    "name": "Open Ocean - Moderate",
+    "chlorophyll": 0.3,
+    "aot_550": 0.1
+  },
+  "radiance_components": {
+    "412": {
+      "toa": 0.141047,
+      "above_surface": 0.031712,
+      "below_surface": 0.0381313,
+      "z_toa_m": 300000.0,
+      "z_above_m": 0.0,
+      "z_below_m": -1.713,
+      "vza_used": 14.46
+    },
+    "443": {
+      "toa": 0.108579,
+      "above_surface": 0.0245968,
+      "below_surface": 0.0255312,
+      "z_toa_m": 300000.0,
+      "z_above_m": 0.0,
+      "z_below_m": -1.789,
+      "vza_used": 14.46
+    },
+    "469": {
+      "toa": 0.0905563,
+      "above_surface": 0.0226545,
+      "below_surface": 0.0221867,
+      "z_toa_m": 300000.0,
+      "z_above_m": 0.0,
+      "z_below_m": -1.89,
+      "vza_used": 14.46
+    },
+    "488": {
+      "toa": 0.0797077,
+      "above_surface": 0.0210836,
+      "below_surface": 0.0209442,
+      "z_toa_m": 300000.0,
+      "z_above_m": 0.0,
+      "z_below_m": -0.001,
+      "vza_used": 14.46
+    },
+    "531": {
+      "toa": 0.0585065,
+      "above_surface": 0.0152566,
+      "below_surface": 0.010289,
+      "z_toa_m": 300000.0,
+      "z_above_m": 0.0,
+      "z_below_m": -0.001,
+      "vza_used": 14.46
+    },
+    "547": {
+      "toa": 0.0530209,
+      "above_surface": 0.0141139,
+      "below_surface": 0.00726304,
+      "z_toa_m": 300000.0,
+      "z_above_m": 0.0,
+      "z_below_m": -1.874,
+      "vza_used": 14.46
+    },
+    "667": {
+      "toa": 0.0299642,
+      "above_surface": 0.00987442,
+      "below_surface": 0.000466658,
+      "z_toa_m": 300000.0,
+      "z_above_m": 0.0,
+      "z_below_m": -0.679,
+      "vza_used": 14.46
+    },
+    "678": {
+      "toa": 0.0289441,
+      "above_surface": 0.00982988,
+      "below_surface": 0.000421415,
+      "z_toa_m": 300000.0,
+      "z_above_m": 0.0,
+      "z_below_m": -0.649,
+      "vza_used": 14.46
+    },
+    "748": {
+      "toa": 0.0239661,
+      "above_surface": 0.00947749,
+      "below_surface": 5.2539e-05,
+      "z_toa_m": 300000.0,
+      "z_above_m": 0.0,
+      "z_below_m": -0.128,
+      "vza_used": 14.46
+    },
+    "869": {
+      "toa": 0.0196369,
+      "above_surface": 0.00933813,
+      "below_surface": 2.44733e-05,
+      "z_toa_m": 300000.0,
+      "z_above_m": 0.0,
+      "z_below_m": -0.079,
+      "vza_used": 14.46
+    }
+  }
+}
