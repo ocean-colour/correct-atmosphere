@@ -54,7 +54,7 @@ dev = [
 docs = [
     "sphinx>=4.0.0",
     "sphinx-rtd-theme>=1.0.0",
-    "numpydoc>=1.2.0",
+    "numpydoc>=1.9.0",
 ]
 
 [project.urls]
